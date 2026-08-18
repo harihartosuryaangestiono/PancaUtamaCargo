@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import { loginAction } from '@/app/actions/authActions'
 import { Lock, Mail, ArrowRight } from 'lucide-react'
 
 export default function LoginPage() {
@@ -14,9 +13,25 @@ export default function LoginPage() {
     setError(null)
 
     const formData = new FormData(e.currentTarget)
-    const result = await loginAction(formData)
-    if (result?.error) {
-      setError(result.error)
+    const email = formData.get('email')?.toString()
+    const password = formData.get('password')?.toString()
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await res.json()
+
+      if (!res.ok || data.error) {
+        setError(data.error || 'Kredensial tidak valid. Silakan periksa email & password.')
+        setLoading(false)
+      } else {
+        window.location.href = data.redirectUrl || '/dashboard'
+      }
+    } catch (err: any) {
+      setError('Terjadi kesalahan jaringan. Silakan coba beberapa saat lagi.')
       setLoading(false)
     }
   }
@@ -28,7 +43,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center text-center mb-8">
           <div className="relative w-20 h-20 rounded-full overflow-hidden border border-black/[0.08] bg-[#F5F5F7] shadow-2xs mb-3 p-1">
             <img
-              src="/LogoPancaUtamaCargo.png"
+              src="/LogoPancaUtamaCargoCircular.png"
               alt="Logo Panca Utama Cargo"
               className="w-full h-full object-cover rounded-full"
             />

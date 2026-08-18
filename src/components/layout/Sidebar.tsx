@@ -212,15 +212,17 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
             </div>
           </div>
 
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              title="Logout"
-              className="p-1.5 text-[#8E8E93] hover:text-[#FF3B30] hover:bg-rose-50 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' })
+              window.location.href = '/login'
+            }}
+            title="Logout"
+            className="p-1.5 text-[#8E8E93] hover:text-[#FF3B30] hover:bg-rose-50 rounded-lg transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </aside>
