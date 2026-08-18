@@ -1,0 +1,840 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  OWNER
+  FINANCE
+}
+
+enum TireStatus {
+  NEW
+  ACTIVE
+  WARNING
+  CRITICAL
+  REPLACEMENT_DUE
+  REPLACED
+  DAMAGED
+  RETIRED
+}
+
+enum TruckStatus {
+  ACTIVE
+  MAINTENANCE
+  INACTIVE
+}
+
+enum ShipmentStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  GIRO
+  CREDIT
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+enum InventoryType {
+  PURCHASE
+  USAGE
+  ADJUSTMENT
+  RETURN
+  DAMAGED
+}
+
+enum MaintenanceType {
+  ROUTINE_SERVICE
+  REPAIR
+  OIL_CHANGE
+  BRAKE
+  SUSPENSION
+  ENGINE
+  ELECTRICAL
+  TIRE
+  OTHER
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(FINANCE)
+  avatarUrl    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  shipments           Shipment[]
+  sparepartPurch      SparepartPurchase[]
+  sparepartUsages     SparepartUsage[]
+  inventoryTrans      InventoryTransaction[]
+  maintenances        Maintenance[]
+  finTransactions     FinancialTransaction[]
+  fuelLogs            FuelLog[]
+  auditLogs           AuditLog[]
+  odometerAdjustments OdometerAdjustment[]
+  notifications       Notification[]
+  createdTripContracts TripContract[]
+  createdAdvances     DriverAdvance[]
+  createdLedgerEntries DriverLedgerEntry[]
+}
+
+model CompanySettings {
+  id                    String   @id @default(cuid())
+  companyName           String   @default("Panca Utama Cargo")
+  address               String?
+  phone                 String?
+  email                 String?
+  logoUrl               String?
+  defaultTireLifetimeKm Float    @default(60000.0)
+  tireWarningPercent    Float    @default(70.0)
+  tireCriticalPercent   Float    @default(90.0)
+  updatedAt             DateTime @updatedAt
+}
+
+model Truck {
+  id                    String      @id @default(cuid())
+  truckCode             String      @unique
+  policeNumber          String      @unique
+  chassisNumber         String?
+  engineNumber          String?
+  brand                 String      @default("Mitsubishi")
+  model                 String      @default("Fighter")
+  variant               String      @default("F61L HD R")
+  vehicleType           String      @default("Tronton")
+  driveConfiguration    String      @default("6x2")
+  transmission          String      @default("Manual Transmission (M/T)")
+  fuelTankConfiguration String      @default("Double Tank")
+  year                  Int?
+  color                 String?
+  capacity              String?
+  purchaseDate          DateTime?
+  purchasePrice         Decimal?
+  status                TruckStatus @default(ACTIVE)
+  photoUrl              String?
+  chassisImageUrl       String?
+  notes                 String?
+  totalKm               Float       @default(0)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  photos               TruckPhoto[]
+  wheelPositions       TruckWheelPosition[]
+  tireInstallations    TireInstallation[]
+  shipments            Shipment[]
+  maintenances         Maintenance[]
+  sparepartUsages      SparepartUsage[]
+  fuelLogs             FuelLog[]
+  documents            TruckDocument[]
+  odometerAdjustments  OdometerAdjustment[]
+  maintenanceSchedules MaintenanceSchedule[]
+  tripContracts        TripContract[]
+}
+
+model TruckPhoto {
+  id        String   @id @default(cuid())
+  truckId   String
+  truck     Truck    @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  url       String
+  isPrimary Boolean  @default(false)
+  caption   String?
+  createdAt DateTime @default(now())
+
+  @@index([truckId])
+}
+
+model TruckDocument {
+  id            String    @id @default(cuid())
+  truckId       String
+  truck         Truck     @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  docName       String
+  docType       String    // STNK, KIR, INSURANCE, PURCHASE_INVOICE, CHASSIS_DOCUMENT, VEHICLE_REGISTRATION, OTHER
+  issueDate     DateTime?
+  expiryDate    DateTime?
+  attachmentUrl String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([truckId])
+}
+
+model OdometerAdjustment {
+  id           String   @id @default(cuid())
+  truckId      String
+  truck        Truck    @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  previousKm   Float
+  newKm        Float
+  reason       String
+  adjustedById String
+  adjustedBy   User     @relation(fields: [adjustedById], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@index([truckId])
+}
+
+model MaintenanceSchedule {
+  id              String    @id @default(cuid())
+  truckId         String
+  truck           Truck     @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  serviceName     String
+  intervalKm      Float?
+  intervalDays    Int?
+  lastServiceKm   Float?
+  lastServiceDate DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([truckId])
+}
+
+model TruckWheelPosition {
+  id            String   @id @default(cuid())
+  truckId       String
+  truck         Truck    @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  positionCode  String   // FL, FR, R1-LI, R1-LO, R1-RI, R1-RO, R2-LI, R2-LO, R2-RI, R2-RO
+  positionName  String
+  axleNumber    Int
+  axleType      String   @default("DRIVE")
+  side          String   // LEFT / RIGHT
+  isInner       Boolean  @default(false)
+  currentTireId String?  @unique
+  currentTire   Tire?    @relation("CurrentTirePosition", fields: [currentTireId], references: [id])
+
+  installations TireInstallation[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([truckId, positionCode])
+  @@index([truckId])
+}
+
+model Tire {
+  id                  String     @id @default(cuid())
+  tireCode            String     @unique
+  brand               String
+  model               String
+  size                String
+  serialNumber        String     @unique
+  purchaseDate        DateTime
+  purchasePrice       Decimal?
+  initialKm           Float?
+  currentKm           Float      @default(0)
+  expectedLifetimeKm  Float
+  remainingLifetimeKm Float
+  status              TireStatus @default(NEW)
+  condition           String?    @default("NOT_INSPECTED")
+  notes               String?
+  photoUrl            String?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  currentPosition TruckWheelPosition? @relation("CurrentTirePosition")
+  installations   TireInstallation[]
+  movements       TireMovementLog[]
+
+  @@index([status])
+}
+
+model TireInstallation {
+  id              String             @id @default(cuid())
+  tireId          String
+  tire            Tire               @relation(fields: [tireId], references: [id])
+  truckId         String
+  truck           Truck              @relation(fields: [truckId], references: [id])
+  wheelPositionId String
+  wheelPosition   TruckWheelPosition @relation(fields: [wheelPositionId], references: [id])
+  installedAtDate DateTime           @default(now())
+  installedKm     Float              @default(0)
+  removedAtDate   DateTime?
+  removedKm       Float?
+  actualUsedKm    Float?             @default(0)
+  costPerKm       Decimal?
+  removalReason   String?
+  notes           String?
+  createdAt       DateTime           @default(now())
+
+  @@index([tireId])
+  @@index([truckId])
+  @@index([wheelPositionId])
+}
+
+model TireMovementLog {
+  id           String   @id @default(cuid())
+  tireId       String
+  tire         Tire     @relation(fields: [tireId], references: [id])
+  action       String   // PURCHASED, INSTALLED, ROTATED, REMOVED, RETIRED
+  fromPosCode  String?
+  toPosCode    String?
+  kmAtMovement Float
+  reason       String?
+  userId       String?
+  createdAt    DateTime @default(now())
+
+  @@index([tireId])
+}
+
+model FuelLog {
+  id            String   @id @default(cuid())
+  date          DateTime
+  truckId       String
+  truck         Truck    @relation(fields: [truckId], references: [id])
+  tankNumber    Int      @default(1)
+  tank1Liters   Float?   @default(0)
+  tank2Liters   Float?   @default(0)
+  tank1Cost     Decimal?
+  tank2Cost     Decimal?
+  liter         Float
+  pricePerLiter Decimal?
+  totalCost     Decimal?
+  kmAtRefuel    Float
+  contractId    String?
+  contract      TripContract? @relation(fields: [contractId], references: [id])
+  tripLegId     String?
+  tripLeg       TripLeg?      @relation(fields: [tripLegId], references: [id])
+  gasStation    String?
+  notes         String?
+  createdById   String
+  createdBy     User          @relation(fields: [createdById], references: [id])
+  createdAt     DateTime      @default(now())
+
+  @@index([truckId])
+  @@index([contractId])
+  @@index([date])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shipments Shipment[]
+  incomes   FinancialTransaction[]
+  tripContracts TripContract[]
+}
+
+model SparepartCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  spareparts Sparepart[]
+}
+
+model Sparepart {
+  id                String            @id @default(cuid())
+  partNumber        String            @unique
+  name              String
+  categoryId        String
+  category          SparepartCategory @relation(fields: [categoryId], references: [id])
+  brand             String?
+  unit              String            @default("Pcs")
+  minStock          Int               @default(0)
+  currentStock      Int               @default(0)
+  avgPurchasePrice  Decimal?
+  lastPurchasePrice Decimal?
+  location          String?
+  status            String            @default("ACTIVE")
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  purchaseItems  SparepartPurchaseItem[]
+  usages         SparepartUsage[]
+  inventoryTrans InventoryTransaction[]
+
+  @@index([categoryId])
+}
+
+model SparepartPurchase {
+  id             String        @id @default(cuid())
+  purchaseNumber String        @unique
+  date           DateTime
+  purchaseSource String? // Store / vendor name free text
+  invoiceNumber  String
+  subtotal       Decimal?
+  discount       Decimal?
+  tax            Decimal?
+  totalAmount    Decimal?
+  paymentStatus  PaymentStatus @default(UNPAID)
+  paymentMethod  PaymentMethod @default(TRANSFER)
+  notes          String?
+  attachmentUrl  String?
+  createdById    String
+  createdBy      User          @relation(fields: [createdById], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  items                SparepartPurchaseItem[]
+  financialTransaction FinancialTransaction?
+}
+
+model SparepartPurchaseItem {
+  id          String            @id @default(cuid())
+  purchaseId  String
+  purchase    SparepartPurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  sparepartId String
+  sparepart   Sparepart         @relation(fields: [sparepartId], references: [id])
+  quantity    Int
+  unitPrice   Decimal
+  discount    Decimal?
+  tax         Decimal?
+  subtotal    Decimal
+  createdAt   DateTime          @default(now())
+}
+
+model SparepartUsage {
+  id            String       @id @default(cuid())
+  usageNumber   String       @unique
+  date          DateTime
+  truckId       String
+  truck         Truck        @relation(fields: [truckId], references: [id])
+  sparepartId   String
+  sparepart     Sparepart    @relation(fields: [sparepartId], references: [id])
+  quantity      Int
+  unitCost      Decimal?
+  totalCost     Decimal?
+  kmAtUsage     Float?
+  maintenanceId String?
+  maintenance   Maintenance? @relation(fields: [maintenanceId], references: [id])
+  technician    String?
+  notes         String?
+  createdById   String
+  createdBy     User         @relation(fields: [createdById], references: [id])
+  createdAt     DateTime     @default(now())
+}
+
+model InventoryTransaction {
+  id            String        @id @default(cuid())
+  sparepartId   String
+  sparepart     Sparepart     @relation(fields: [sparepartId], references: [id])
+  type          InventoryType
+  quantity      Int
+  previousStock Int
+  newStock      Int
+  unitPrice     Decimal?
+  referenceType String?
+  referenceId   String?
+  reason        String?
+  createdById   String
+  createdBy     User          @relation(fields: [createdById], references: [id])
+  createdAt     DateTime      @default(now())
+
+  @@index([sparepartId])
+  @@index([createdAt])
+}
+
+model Maintenance {
+  id                String          @id @default(cuid())
+  maintenanceNumber String          @unique
+  date              DateTime
+  truckId           String
+  truck             Truck           @relation(fields: [truckId], references: [id])
+  kmAtMaintenance   Float           @default(0)
+  maintenanceType   MaintenanceType @default(ROUTINE_SERVICE)
+  description       String
+  laborCost         Decimal?
+  sparepartCost     Decimal?
+  otherCost         Decimal?
+  totalCost         Decimal?
+  workshop          String?
+  workshopPhone     String?
+  workshopAddress   String?
+  notes             String?
+  attachmentUrl     String?
+  createdById       String
+  createdBy         User            @relation(fields: [createdById], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  sparepartUsages      SparepartUsage[]
+  financialTransaction FinancialTransaction?
+
+  @@index([truckId])
+  @@index([date])
+}
+
+model IncomeCategory {
+  id           String                 @id @default(cuid())
+  name         String                 @unique
+  description  String?
+  createdAt    DateTime               @default(now())
+  transactions FinancialTransaction[]
+}
+
+model ExpenseCategory {
+  id           String                 @id @default(cuid())
+  name         String                 @unique
+  description  String?
+  createdAt    DateTime               @default(now())
+  transactions FinancialTransaction[]
+}
+
+model Shipment {
+  id             String         @id @default(cuid())
+  shipmentNumber String         @unique
+  date           DateTime
+  status         ShipmentStatus @default(COMPLETED)
+  customerId     String
+  customer       Customer       @relation(fields: [customerId], references: [id])
+  origin         String
+  destination    String
+  driverName     String
+  truckId        String
+  truck          Truck          @relation(fields: [truckId], references: [id])
+  startKm        Float
+  endKm          Float
+  totalKm        Float
+  revenue        Decimal?
+  fuelCost       Decimal?
+  tollCost       Decimal?
+  otherCost      Decimal?
+  totalCost      Decimal?
+  netRevenue     Decimal?
+  notes          String?
+  createdById    String
+  createdBy      User           @relation(fields: [createdById], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  financialTransactions FinancialTransaction[]
+
+  @@index([date])
+  @@index([truckId])
+  @@index([customerId])
+}
+
+model FinancialTransaction {
+  id                String             @id @default(cuid())
+  transactionNumber String             @unique
+  type              TransactionType
+  date              DateTime
+  incomeCategoryId  String?
+  incomeCategory    IncomeCategory?    @relation(fields: [incomeCategoryId], references: [id])
+  expenseCategoryId String?
+  expenseCategory   ExpenseCategory?   @relation(fields: [expenseCategoryId], references: [id])
+  description       String
+  customerId        String?
+  customer          Customer?          @relation(fields: [customerId], references: [id])
+  purchaseSource    String?            // Store / vendor name free text
+  shipmentId        String?
+  shipment          Shipment?          @relation(fields: [shipmentId], references: [id])
+  purchaseId        String?            @unique
+  sparepartPurchase SparepartPurchase? @relation(fields: [purchaseId], references: [id])
+  maintenanceId     String?            @unique
+  maintenance       Maintenance?       @relation(fields: [maintenanceId], references: [id])
+  amount            Decimal
+  paymentMethod     PaymentMethod      @default(TRANSFER)
+  referenceNumber   String?
+  notes             String?
+  attachmentUrl     String?
+  createdById       String
+  createdBy         User               @relation(fields: [createdById], references: [id])
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([date])
+  @@index([type])
+  @@index([customerId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  userName    String
+  role        Role
+  action      String
+  module      String
+  recordId    String?
+  beforeValue String?
+  afterValue  String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([module])
+  @@index([createdAt])
+}
+
+enum NotificationCategory {
+  TIRE
+  DOCUMENT
+  MAINTENANCE
+  SPAREPART
+  ODOMETER
+  FUEL
+  FINANCIAL
+  SYSTEM
+}
+
+enum NotificationSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model Notification {
+  id        String               @id @default(cuid())
+  userId    String
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  NotificationCategory @default(SYSTEM)
+  severity  NotificationSeverity @default(INFO)
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean              @default(false)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+enum ContractStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum LegDirection {
+  OUTBOUND
+  RETURN
+}
+
+enum AdvanceStatus {
+  PENDING
+  GIVEN
+  SETTLED
+  CANCELLED
+}
+
+enum SettlementStatus {
+  PENDING
+  PARTIALLY_SETTLED
+  SETTLED
+  OVERPAID
+  CANCELLED
+}
+
+enum SettlementDifferenceResolution {
+  RETURN_TO_COMPANY
+  ADDITIONAL_PAYMENT
+  OFFSET_TO_NEXT_TRIP
+  OTHER
+}
+
+enum DriverStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum DriverLedgerType {
+  DRIVER_ADVANCE_GIVEN
+  DRIVER_SETTLEMENT_PAYMENT
+  DRIVER_REFUND
+  DRIVER_OFFSET
+}
+
+model Driver {
+  id            String       @id @default(cuid())
+  driverCode    String       @unique
+  name          String
+  phone         String?
+  address       String?
+  licenseNumber String?
+  licenseType   String?      // e.g., SIM B2 Umum
+  licenseExpiry DateTime?
+  status        DriverStatus @default(ACTIVE)
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  tripContracts TripContract[]
+  advances      DriverAdvance[]
+  settlements   DriverSettlement[]
+  ledgerEntries DriverLedgerEntry[]
+}
+
+model TripContract {
+  id             String         @id @default(cuid())
+  contractNumber String         @unique
+  truckId        String
+  truck          Truck          @relation(fields: [truckId], references: [id])
+  driverId       String?
+  driver         Driver?        @relation(fields: [driverId], references: [id])
+  driverName     String
+  customerId     String
+  customer       Customer       @relation(fields: [customerId], references: [id])
+  startDate      DateTime
+  endDate        DateTime?
+  status         ContractStatus @default(IN_PROGRESS)
+  notes          String?
+  createdById    String
+  createdBy      User           @relation(fields: [createdById], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  legs          TripLeg[]
+  advances      DriverAdvance[]
+  settlements   DriverSettlement[]
+  fuelLogs      FuelLog[]
+  ledgerEntries DriverLedgerEntry[]
+
+  @@index([truckId])
+  @@index([customerId])
+  @@index([driverId])
+  @@index([startDate])
+}
+
+model TripLeg {
+  id                String         @id @default(cuid())
+  contractId        String
+  contract          TripContract   @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  legNumber         Int            // 1 for Outbound, 2 for Return
+  direction         LegDirection   @default(OUTBOUND)
+  origin            String
+  destination       String
+  cargoType         String
+  cargoWeightTon    Float          @default(0)
+  startKm           Float          @default(0)
+  endKm             Float          @default(0)
+  distanceKm        Float          @default(0)
+  contractValue     Decimal        @default(0)
+  driverPercentage  Float          @default(53.0)
+  companyPercentage Float          @default(47.0)
+  tollCost          Decimal        @default(0)
+  companyTollCost   Decimal        @default(0)
+  driverTollCost    Decimal        @default(0)
+  fuelCost          Decimal        @default(0)
+  fuelLiters        Float          @default(0)
+  otherCost         Decimal        @default(0)
+  status            ContractStatus @default(IN_PROGRESS)
+  departureDate     DateTime?
+  arrivalDate       DateTime?
+  notes             String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  advances      DriverAdvance[]
+  settlements   DriverSettlement[]
+  fuelLogs      FuelLog[]
+  ledgerEntries DriverLedgerEntry[]
+
+  @@index([contractId])
+}
+
+model DriverAdvance {
+  id          String        @id @default(cuid())
+  contractId  String
+  contract    TripContract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  tripLegId   String?
+  tripLeg     TripLeg?      @relation(fields: [tripLegId], references: [id])
+  driverId    String?
+  driver      Driver?       @relation(fields: [driverId], references: [id])
+  driverName  String
+  amount      Decimal       @default(0)
+  givenAt     DateTime      @default(now())
+  status      AdvanceStatus @default(GIVEN)
+  notes       String?
+  createdById String
+  createdBy   User          @relation(fields: [createdById], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([contractId])
+  @@index([driverId])
+}
+
+model DriverSettlement {
+  id                   String                          @id @default(cuid())
+  contractId           String
+  contract             TripContract                    @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  tripLegId            String?
+  tripLeg              TripLeg?                        @relation(fields: [tripLegId], references: [id])
+  driverId             String?
+  driver               Driver?                         @relation(fields: [driverId], references: [id])
+  driverName           String
+  driverShare          Decimal                         @default(0)
+  driverToll           Decimal                         @default(0)
+  driverFuel           Decimal                         @default(0)
+  driverOtherCost      Decimal                         @default(0)
+  advanceAmount        Decimal                         @default(0)
+  finalDriverAmount    Decimal                         @default(0)
+  amountAlreadyPaid    Decimal                         @default(0)
+  remainingAmount      Decimal                         @default(0)
+  settlementDifference Decimal                         @default(0)
+  differenceResolution SettlementDifferenceResolution?
+  settlementDate       DateTime                        @default(now())
+  status               SettlementStatus                @default(SETTLED)
+  notes                String?
+  createdAt            DateTime                        @default(now())
+  updatedAt            DateTime                        @updatedAt
+
+  @@index([contractId])
+  @@index([driverId])
+}
+
+model DriverLedgerEntry {
+  id          String           @id @default(cuid())
+  driverId    String
+  driver      Driver           @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  contractId  String?
+  contract    TripContract?    @relation(fields: [contractId], references: [id])
+  tripLegId   String?
+  tripLeg     TripLeg?         @relation(fields: [tripLegId], references: [id])
+  type        DriverLedgerType
+  amount      Decimal          @default(0)
+  date        DateTime         @default(now())
+  notes       String?
+  createdById String
+  createdBy   User             @relation(fields: [createdById], references: [id])
+  createdAt   DateTime         @default(now())
+
+  @@index([driverId])
+  @@index([contractId])
+  @@index([date])
+}
+
+model CompanyConfig {
+  id                         String   @id @default(cuid())
+  driverSharePercentDefault  Float    @default(53.0)
+  companySharePercentDefault Float    @default(47.0)
+  companyTollPercentDefault  Float    @default(60.0)
+  driverTollPercentDefault   Float    @default(40.0)
+  defaultDriverAdvanceAmount Decimal  @default(3000000)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+}
+
+
