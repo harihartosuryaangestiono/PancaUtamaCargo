@@ -32,6 +32,23 @@ async function main() {
   })
   console.log(`Seeded Owner Account: ${ownerUser.name} (${ownerUser.email})`)
 
+  const ownerSuryaHash = await bcrypt.hash('hari123!', 10)
+  const ownerSuryaUser = await prisma.user.upsert({
+    where: { email: 'hariharto.surya@gmail.com' },
+    update: {
+      name: 'Hariharto Surya',
+      role: 'OWNER',
+      passwordHash: ownerSuryaHash,
+    },
+    create: {
+      name: 'Hariharto Surya',
+      email: 'hariharto.surya@gmail.com',
+      role: 'OWNER',
+      passwordHash: ownerSuryaHash,
+    },
+  })
+  console.log(`Seeded Owner Account: ${ownerSuryaUser.name} (${ownerSuryaUser.email})`)
+
   const financeUser = await prisma.user.upsert({
     where: { email: financeEmail },
     update: {
