@@ -35,7 +35,7 @@ export async function loginAction(formData: FormData) {
     })
   } catch (err: any) {
     console.error('Login action error:', err)
-    return { error: 'Terjadi kesalahan koneksi database. Silakan coba beberapa saat lagi.' }
+    return { error: `Database error: ${err?.message || String(err)}` }
   }
 
   redirect('/dashboard')
