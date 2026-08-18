@@ -13,25 +13,30 @@ export async function loginAction(formData: FormData) {
     return { error: 'Email dan password wajib diisi.' }
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-  })
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    })
 
-  if (!user) {
-    return { error: 'Kredensial tidak valid. Silakan periksa email & password.' }
+    if (!user) {
+      return { error: 'Kredensial tidak valid. Silakan periksa email & password.' }
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.passwordHash)
+    if (!isValidPassword) {
+      return { error: 'Kredensial tidak valid. Silakan periksa email & password.' }
+    }
+
+    await createSession({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    })
+  } catch (err: any) {
+    console.error('Login action error:', err)
+    return { error: 'Terjadi kesalahan koneksi database. Silakan coba beberapa saat lagi.' }
   }
-
-  const isValidPassword = await bcrypt.compare(password, user.passwordHash)
-  if (!isValidPassword) {
-    return { error: 'Kredensial tidak valid. Silakan periksa email & password.' }
-  }
-
-  await createSession({
-    userId: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-  })
 
   redirect('/dashboard')
 }
