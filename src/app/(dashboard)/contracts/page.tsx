@@ -112,11 +112,26 @@ export default async function ContractsPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+
+                  <div className="flex flex-wrap items-center gap-2">
                     {getStatusBadge(c.status)}
                     {session.role === 'OWNER' && (
                       <EditContractCostsModal contract={c} />
                     )}
+                    <Link
+                      href={`/contracts/${c.id}/surat-jalan`}
+                      className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#F5F5F7] text-[#007AFF] text-xs font-semibold border border-black/[0.08] transition-colors"
+                      title="Cetak Surat Jalan Cargo"
+                    >
+                      Cetak Surat Jalan
+                    </Link>
+                    <Link
+                      href={`/contracts/${c.id}/invoice`}
+                      className="px-3 py-1.5 rounded-xl bg-white hover:bg-[#F5F5F7] text-[#248A3D] text-xs font-semibold border border-black/[0.08] transition-colors"
+                      title="Cetak Invoice Tagihan Pelanggan"
+                    >
+                      Cetak Invoice
+                    </Link>
                     <Link
                       href={`/contracts/${c.id}`}
                       className="px-3.5 py-1.5 rounded-xl bg-[#F2F2F7] hover:bg-[#E5E5EA] text-[#1D1D1F] text-xs font-semibold border border-black/[0.06] transition-colors"

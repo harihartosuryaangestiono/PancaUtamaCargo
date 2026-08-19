@@ -29,6 +29,7 @@ export function CreateContractModal({ customers, trucks, drivers = [] }: CreateC
   const [notes, setNotes] = useState('')
 
   // ERP 1 Outbound
+  const [outCustomerId, setOutCustomerId] = useState('')
   const [outOrigin, setOutOrigin] = useState('Magelang')
   const [outDest, setOutDest] = useState('Surabaya')
   const [outCargo, setOutCargo] = useState('Plywood')
@@ -40,6 +41,7 @@ export function CreateContractModal({ customers, trucks, drivers = [] }: CreateC
   const [outInap, setOutInap] = useState('0')
 
   // ERP 2 Return
+  const [retCustomerId, setRetCustomerId] = useState('')
   const [retOrigin, setRetOrigin] = useState('Surabaya')
   const [retDest, setRetDest] = useState('Magelang')
   const [retCargo, setRetCargo] = useState('Besi Siku')
@@ -57,6 +59,8 @@ export function CreateContractModal({ customers, trucks, drivers = [] }: CreateC
     setStep(1)
     setError(null)
     setCustomerId('')
+    setOutCustomerId('')
+    setRetCustomerId('')
     setTruckId('')
     setDriverId('')
     setDriverName('')
@@ -80,6 +84,7 @@ export function CreateContractModal({ customers, trucks, drivers = [] }: CreateC
         notes,
         driverAdvanceAmount: Number(driverAdvance) || 3000000,
         outboundLeg: {
+          customerId: outCustomerId || customerId,
           origin: outOrigin,
           destination: outDest,
           cargoType: outCargo,
@@ -91,6 +96,7 @@ export function CreateContractModal({ customers, trucks, drivers = [] }: CreateC
           otherCost: Number(outInap) || 0,
         },
         returnLeg: {
+          customerId: retCustomerId || customerId,
           origin: retOrigin,
           destination: retDest,
           cargoType: retCargo,
@@ -259,6 +265,21 @@ export function CreateContractModal({ customers, trucks, drivers = [] }: CreateC
             {/* Step 2: ERP 1 */}
             {step === 2 && (
               <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="col-span-2">
+                  <label className="block font-semibold text-[#1D1D1F] mb-1">Customer / Client Leg 1 (Arah Berangkat)</label>
+                  <select
+                    value={outCustomerId}
+                    onChange={(e) => setOutCustomerId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] font-medium"
+                  >
+                    <option value="">-- Sama Dengan Customer Utama Kontrak --</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label className="block font-semibold text-[#1D1D1F] mb-1">Kota Asal (Origin)</label>
                   <input type="text" value={outOrigin} onChange={(e) => setOutOrigin(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] font-medium" />
@@ -301,6 +322,21 @@ export function CreateContractModal({ customers, trucks, drivers = [] }: CreateC
             {/* Step 3: ERP 2 */}
             {step === 3 && (
               <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="col-span-2">
+                  <label className="block font-semibold text-[#1D1D1F] mb-1">Customer / Client Leg 2 (Arah Pulang)</label>
+                  <select
+                    value={retCustomerId}
+                    onChange={(e) => setRetCustomerId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] font-medium"
+                  >
+                    <option value="">-- Sama Dengan Customer Utama Kontrak --</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label className="block font-semibold text-[#1D1D1F] mb-1">Kota Asal (Origin)</label>
                   <input type="text" value={retOrigin} onChange={(e) => setRetOrigin(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] font-medium" />

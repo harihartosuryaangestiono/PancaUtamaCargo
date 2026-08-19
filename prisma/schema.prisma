@@ -338,6 +338,7 @@ model Customer {
   shipments Shipment[]
   incomes   FinancialTransaction[]
   tripContracts TripContract[]
+  tripLegs  TripLeg[]
 }
 
 model SparepartCategory {
@@ -744,6 +745,9 @@ model TripLeg {
   departureDate     DateTime?
   arrivalDate       DateTime?
   notes             String?
+  customerId        String?
+  customer          Customer?      @relation(fields: [customerId], references: [id])
+  customerName      String?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 

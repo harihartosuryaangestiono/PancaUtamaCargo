@@ -19,6 +19,7 @@ export interface CreateLegInput {
   departureDate?: string
   arrivalDate?: string
   notes?: string
+  customerId?: string
 }
 
 export interface CreateContractInput {
@@ -105,6 +106,7 @@ export async function createTripContractAction(input: CreateContractInput) {
         departureDate: input.outboundLeg.departureDate ? new Date(input.outboundLeg.departureDate) : new Date(input.startDate),
         arrivalDate: input.outboundLeg.arrivalDate ? new Date(input.outboundLeg.arrivalDate) : null,
         notes: input.outboundLeg.notes || null,
+        customerId: input.outboundLeg.customerId || input.customerId,
       },
     })
 
@@ -133,6 +135,7 @@ export async function createTripContractAction(input: CreateContractInput) {
         departureDate: input.returnLeg.departureDate ? new Date(input.returnLeg.departureDate) : new Date(input.startDate),
         arrivalDate: input.returnLeg.arrivalDate ? new Date(input.returnLeg.arrivalDate) : null,
         notes: input.returnLeg.notes || null,
+        customerId: input.returnLeg.customerId || input.customerId,
       },
     })
 
@@ -201,7 +204,10 @@ export async function getContractsAction(params?: { status?: string; search?: st
     include: {
       truck: true,
       customer: true,
-      legs: { orderBy: { legNumber: 'asc' } },
+      legs: {
+        include: { customer: true },
+        orderBy: { legNumber: 'asc' },
+      },
       advances: true,
       settlements: true,
     },
@@ -251,7 +257,10 @@ export async function getContractByIdAction(contractId: string) {
       truck: true,
       customer: true,
       createdBy: { select: { id: true, name: true, email: true } },
-      legs: { orderBy: { legNumber: 'asc' } },
+      legs: {
+        include: { customer: true },
+        orderBy: { legNumber: 'asc' },
+      },
       advances: { orderBy: { givenAt: 'desc' } },
       settlements: { orderBy: { settlementDate: 'desc' } },
       fuelLogs: true,

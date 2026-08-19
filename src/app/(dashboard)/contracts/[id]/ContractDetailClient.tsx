@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Plus, DollarSign } from 'lucide-react'
+import Link from 'next/link'
+import { Check, Plus, DollarSign, Printer, FileText, Receipt } from 'lucide-react'
 import { recordDriverAdvanceAction, settleDriverAction } from '@/app/actions/driverSettlementActions'
 import { updateContractStatusAction } from '@/app/actions/contractActions'
 import { formatCurrency } from '@/lib/utils/format'
@@ -98,38 +99,62 @@ export function ContractDetailClient({ contract, userRole }: ContractDetailClien
       />
 
       {/* Primary Actions Bar */}
-      {isOwner && (
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => setIsAdvanceModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-[#007AFF] hover:bg-[#0062CC] text-white font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" /> Catat Uang Jalan Tambahan
-          </button>
-
-          <button
-            onClick={() => setIsSettlementModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-[#34C759] hover:bg-[#28A745] text-white font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
-          >
-            <DollarSign className="w-4 h-4" /> Proses Totalan Supir (Settlement)
-          </button>
-
-          <EditContractCostsModal
-            contract={contract}
-            buttonClassName="px-4 py-2.5 rounded-xl bg-[#FF9500] hover:bg-[#E08200] text-white font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
-            triggerText="Edit Biaya (Tol, Inap, Bensin)"
-          />
-
-          {contract.status !== 'COMPLETED' && (
+      <div className="flex flex-wrap items-center gap-3">
+        {isOwner && (
+          <>
             <button
-              onClick={() => setIsConfirmCompleteOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-[#1D1D1F] hover:bg-black text-white font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
+              onClick={() => setIsAdvanceModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-[#007AFF] hover:bg-[#0062CC] text-white font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
             >
-              <Check className="w-4 h-4" /> Tandai Kontrak Selesai
+              <Plus className="w-4 h-4" /> Catat Uang Jalan Tambahan
             </button>
-          )}
-        </div>
-      )}
+
+            <button
+              onClick={() => setIsSettlementModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-[#34C759] hover:bg-[#28A745] text-white font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
+            >
+              <DollarSign className="w-4 h-4" /> Proses Totalan Supir (Settlement)
+            </button>
+
+            <EditContractCostsModal
+              contract={contract}
+              buttonClassName="px-4 py-2.5 rounded-xl bg-[#FF9500] hover:bg-[#E08200] text-white font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
+              triggerText="Edit Biaya (Tol, Inap, Bensin)"
+            />
+
+            {contract.status !== 'COMPLETED' && (
+              <button
+                onClick={() => setIsConfirmCompleteOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-[#1D1D1F] hover:bg-black text-white font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
+              >
+                <Check className="w-4 h-4" /> Tandai Kontrak Selesai
+              </button>
+            )}
+          </>
+        )}
+
+        {/* Print Document Shortcuts */}
+        <Link
+          href={`/contracts/${contract.id}/surat-jalan`}
+          className="px-4 py-2.5 rounded-xl bg-white text-[#1D1D1F] hover:bg-[#F5F5F7] border border-black/[0.08] font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
+        >
+          <Printer className="w-4 h-4 text-[#007AFF]" /> Cetak Surat Jalan
+        </Link>
+
+        <Link
+          href={`/contracts/${contract.id}/invoice`}
+          className="px-4 py-2.5 rounded-xl bg-white text-[#1D1D1F] hover:bg-[#F5F5F7] border border-black/[0.08] font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
+        >
+          <FileText className="w-4 h-4 text-[#34C759]" /> Cetak Invoice Tagihan
+        </Link>
+
+        <Link
+          href={`/contracts/${contract.id}/settlement/receipt`}
+          className="px-4 py-2.5 rounded-xl bg-white text-[#1D1D1F] hover:bg-[#F5F5F7] border border-black/[0.08] font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
+        >
+          <Receipt className="w-4 h-4 text-[#FF9500]" /> Cetak Kuitansi Totalan
+        </Link>
+      </div>
 
       {/* Record Advance Modal */}
       {isAdvanceModalOpen && (
