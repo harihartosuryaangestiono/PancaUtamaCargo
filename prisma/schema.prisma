@@ -1,6 +1,7 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -842,4 +843,42 @@ model CompanyConfig {
   updatedAt                  DateTime @updatedAt
 }
 
+model BcaMutation {
+  id          String    @id @default(cuid())
+  accountNo   String
+  accountName String?
+  currency    String    @default("IDR")
+  date        DateTime?
+  dateRaw     String    // e.g. "05/08/2026", "PEND"
+  description String
+  branch      String    @default("0000")
+  amount      Decimal   @default(0)
+  type        String    // "CR" or "DB"
+  balance     Decimal   @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
+  @@index([accountNo])
+  @@index([date])
+}
+
+model KasMutation {
+  id          String    @id @default(cuid())
+  tanggal     DateTime?
+  tanggalRaw  String    // e.g. "05/08/2026"
+  keterangan  String
+  cabang      String?
+  debit       Decimal   @default(0) // Debit / Pengeluaran Rp
+  kredit      Decimal   @default(0) // Kredit / Pemasukan Rp
+  saldo       Decimal   @default(0) // Saldo Rp
+  kategori    String    @default("Biaya Lain-lain")
+  jenis       String    @default("Pengeluaran") // "Pemasukan" or "Pengeluaran"
+  catatan     String?
+  pihakUtang  String?   // e.g. "Trading Plywood"
+  statusUtang String?   // e.g. "Belum Lunas", "Lunas"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tanggal])
+  @@index([kategori])
+}

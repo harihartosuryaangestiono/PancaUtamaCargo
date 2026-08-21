@@ -17,6 +17,8 @@ import {
   Users,
   LogOut,
   ChevronRight,
+  Building2,
+  FileSpreadsheet,
 } from 'lucide-react'
 import { logoutAction } from '@/app/actions/authActions'
 
@@ -94,6 +96,18 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
           roles: ['OWNER', 'FINANCE'],
         },
         {
+          label: 'Mutasi Rekening BCA',
+          href: '/financials/bca-mutations',
+          icon: Building2,
+          roles: ['OWNER', 'FINANCE'],
+        },
+        {
+          label: 'Pembukuan Buku Kas',
+          href: '/financials/spreadsheet-mutations',
+          icon: FileSpreadsheet,
+          roles: ['OWNER', 'FINANCE'],
+        },
+        {
           label: 'Stok & Sparepart',
           href: '/spareparts',
           icon: Package,
@@ -166,6 +180,7 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
                     pathname === item.href ||
                     (item.href !== '/dashboard' &&
                       item.href !== '/reports' &&
+                      item.href !== '/financials' &&
                       pathname.startsWith(item.href + '/'))
                   const Icon = item.icon
 

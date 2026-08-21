@@ -14,6 +14,8 @@ import {
   X,
   ArrowRight,
   ShieldCheck,
+  Building2,
+  FileSpreadsheet,
 } from 'lucide-react'
 
 interface CommandItem {
@@ -28,6 +30,8 @@ const COMMANDS: CommandItem[] = [
   { icon: Disc, label: 'Stok & Lifecycle Ban (60k KM)', href: '/tires', category: 'Tires' },
   { icon: FileText, label: 'Kontrak Perjalanan ERP (Magelang - Surabaya)', href: '/contracts', category: 'Contract' },
   { icon: DollarSign, label: 'Pembukuan & Transaksi Keuangan', href: '/financials', category: 'Financial' },
+  { icon: Building2, label: 'Mutasi Rekening BCA (KlikBCA CSV)', href: '/financials/bca-mutations', category: 'Financial' },
+  { icon: FileSpreadsheet, label: 'Pembukuan Buku Kas & Rekap Tronton', href: '/financials/spreadsheet-mutations', category: 'Financial' },
   { icon: Wrench, label: 'Jadwal Perawatan & Bengkel Armada', href: '/maintenance', category: 'Maintenance' },
   { icon: Users, label: 'Direktori Pelanggan & Customer Cargo', href: '/customers', category: 'Customer' },
   { icon: ShieldCheck, label: 'Audit Trail Logs & Keamanan System', href: '/audit', category: 'Settings' },
