@@ -116,7 +116,12 @@ export default async function ContractsPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     {getStatusBadge(c.status)}
                     {session.role === 'OWNER' && (
-                      <EditContractCostsModal contract={c} />
+                      <EditContractCostsModal
+                        contract={c}
+                        customers={customers.map((cust: any) => ({ id: cust.id, name: cust.name }))}
+                        trucks={trucks.map((t: any) => ({ id: t.id, policeNumber: t.policeNumber, brand: t.brand, model: t.model }))}
+                        drivers={drivers.map((d: any) => ({ id: d.id, driverCode: d.driverCode, name: d.name, status: d.status }))}
+                      />
                     )}
                     <Link
                       href={`/contracts/${c.id}/surat-jalan`}

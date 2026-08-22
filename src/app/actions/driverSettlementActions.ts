@@ -48,7 +48,9 @@ export interface SettleDriverInput {
   contractId: string
   driverName: string
   driverShare: number
-  driverToll: number
+  driverToll?: number
+  companyToll?: number
+  totalDriverEntitlement?: number
   advanceAmount: number
   resolution: 'RETURN_TO_COMPANY' | 'ADDITIONAL_PAYMENT' | 'OFFSET_TO_NEXT_TRIP' | 'OTHER'
   notes?: string
@@ -61,8 +63,13 @@ export async function settleDriverAction(input: SettleDriverInput) {
     return { error: 'Contract ID wajib diisi.' }
   }
 
-  const diff = input.driverShare - input.advanceAmount
-  const finalAmount = input.driverShare
+  const companyToll = input.companyToll !== undefined ? input.companyToll : 0
+  const entitlement = input.totalDriverEntitlement !== undefined 
+    ? input.totalDriverEntitlement 
+    : (input.driverShare + companyToll)
+
+  const diff = entitlement - input.advanceAmount
+  const finalAmount = entitlement
 
   const settlement = await prisma.$transaction(async (tx) => {
     const s = await tx.driverSettlement.create({
@@ -70,7 +77,7 @@ export async function settleDriverAction(input: SettleDriverInput) {
         contractId: input.contractId,
         driverName: input.driverName,
         driverShare: input.driverShare,
-        driverToll: input.driverToll,
+        driverToll: input.driverToll || 0,
         advanceAmount: input.advanceAmount,
         finalDriverAmount: finalAmount,
         settlementDifference: diff,

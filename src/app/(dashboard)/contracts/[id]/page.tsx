@@ -1,5 +1,8 @@
 import { requireAuth } from '@/lib/session'
 import { getContractByIdAction } from '@/app/actions/contractActions'
+import { getCustomersAction } from '@/app/actions/masterDataActions'
+import { getTrucksAction } from '@/app/actions/truckActions'
+import { getDriversAction } from '@/app/actions/driverActions'
 import { ContractDetailClient } from './ContractDetailClient'
 import { formatCurrency, formatKm, formatDate } from '@/lib/utils/format'
 import { notFound } from 'next/navigation'
@@ -13,7 +16,12 @@ interface ContractDetailPageProps {
 export default async function ContractDetailPage({ params }: ContractDetailPageProps) {
   const session = await requireAuth()
   const { id } = await params
-  const contract = await getContractByIdAction(id)
+  const [contract, customers, trucks, drivers] = await Promise.all([
+    getContractByIdAction(id),
+    getCustomersAction(),
+    getTrucksAction(),
+    getDriversAction(),
+  ])
 
   if (!contract) {
     notFound()
@@ -81,7 +89,13 @@ export default async function ContractDetailPage({ params }: ContractDetailPageP
       </div>
 
       {/* Client Action Buttons (Record Advance / Totalan Supir) */}
-      <ContractDetailClient contract={contract} userRole={session.role} />
+      <ContractDetailClient
+        contract={contract}
+        userRole={session.role}
+        customers={customers.map((c: any) => ({ id: c.id, name: c.name }))}
+        trucks={trucks.map((t: any) => ({ id: t.id, policeNumber: t.policeNumber, brand: t.brand, model: t.model }))}
+        drivers={drivers.map((d: any) => ({ id: d.id, driverCode: d.driverCode, name: d.name, status: d.status }))}
+      />
 
       {/* Visual Trip Timeline Card (ERP 1 Outbound & ERP 2 Return) */}
       <div className="p-6 sm:p-8 rounded-2xl bg-white border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-6">
@@ -166,31 +180,31 @@ export default async function ContractDetailPage({ params }: ContractDetailPageP
 
       {/* Contract Financial Waterfall Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Revenue Allocation Card */}
+        {/* Driver Entitlement Waterfall Card */}
         <div className="p-6 rounded-2xl bg-white border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-4">
           <h3 className="text-xs font-semibold text-[#6E6E73] uppercase tracking-widest">
-            Pembagian Hasil (Potongan 2% &rarr; 53% Supir / 47% Perusahaan)
+            Pembagian Supir &amp; Hak Totalan (53% Kontrak Kotor + 60% Tol)
           </h3>
           <div className="space-y-3 text-xs">
             <div className="flex justify-between p-3 rounded-xl bg-[#FAFAFA]">
               <span className="text-[#6E6E73]">Total Nilai Kontrak Kotor (ERP 1 + ERP 2):</span>
               <span className="font-semibold text-[#1D1D1F]">{formatCurrency(contract.totalRevenue)}</span>
             </div>
-            <div className="flex justify-between p-3 rounded-xl bg-rose-50 border border-rose-200">
-              <span className="font-semibold text-[#FF3B30]">Potongan 2% (Tax / Fee):</span>
-              <span className="font-semibold text-[#FF3B30]">-{formatCurrency(contract.taxDeduction)}</span>
-            </div>
-            <div className="flex justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-              <span className="font-semibold text-[#248A3D]">Total Diterima Perusahaan (98% Net):</span>
-              <span className="font-semibold text-[#248A3D]">{formatCurrency(contract.netContractValue)}</span>
-            </div>
             <div className="flex justify-between p-3 rounded-xl bg-amber-50 border border-amber-200">
-              <span className="font-semibold text-[#C67300]">Bagian Supir (Driver Share 53% dari Net):</span>
+              <span className="font-semibold text-[#C67300]">Bagian Supir (53% dari Nilai Kotor):</span>
               <span className="font-semibold text-[#C67300]">{formatCurrency(contract.driverAllocation)}</span>
             </div>
-            <div className="flex justify-between p-3 rounded-xl bg-blue-50 border border-blue-200">
-              <span className="font-semibold text-[#007AFF]">Bagian Perusahaan (Company Share 47% dari Net):</span>
-              <span className="font-semibold text-[#007AFF]">{formatCurrency(contract.companyAllocation)}</span>
+            <div className="flex justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+              <span className="font-semibold text-[#248A3D]">+ Reimbursement Tol Perusahaan (60%):</span>
+              <span className="font-semibold text-[#248A3D]">+{formatCurrency(contract.totalCompanyToll)}</span>
+            </div>
+            <div className="flex justify-between p-3 rounded-xl bg-blue-50 border border-blue-200 font-semibold">
+              <span className="text-[#007AFF]">Total Hak Supir (Totalan Kotor):</span>
+              <span className="text-[#007AFF] text-sm">{formatCurrency(contract.totalDriverEntitlement)}</span>
+            </div>
+            <div className="flex justify-between p-3 rounded-xl bg-[#FAFAFA] text-[#6E6E73]">
+              <span>Total Uang Jalan Diberikan (Advance):</span>
+              <span className="font-semibold text-[#1D1D1F]">-{formatCurrency(contract.totalAdvance)}</span>
             </div>
           </div>
         </div>
@@ -202,8 +216,12 @@ export default async function ContractDetailPage({ params }: ContractDetailPageP
           </h3>
           <div className="space-y-3 text-xs">
             <div className="flex justify-between">
-              <span className="text-[#6E6E73]">Bagian Perusahaan (47% dari Net):</span>
+              <span className="text-[#6E6E73]">Bagian Perusahaan (47% dari Kontrak Kotor):</span>
               <span className="font-semibold text-[#1D1D1F]">{formatCurrency(contract.companyAllocation)}</span>
+            </div>
+            <div className="flex justify-between text-[#FF3B30]">
+              <span>Beban Potongan PPh/Pajak 2%:</span>
+              <span className="font-semibold">-{formatCurrency(contract.taxDeduction)}</span>
             </div>
             <div className="flex justify-between text-[#FF3B30]">
               <span>Beban Tol Perusahaan (60%):</span>

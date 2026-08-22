@@ -13,9 +13,12 @@ import { EditContractCostsModal } from '../EditContractCostsModal'
 interface ContractDetailClientProps {
   contract: any
   userRole: 'OWNER' | 'FINANCE'
+  customers?: Array<{ id: string; name: string }>
+  trucks?: Array<{ id: string; policeNumber: string; brand: string; model: string }>
+  drivers?: Array<{ id: string; driverCode: string; name: string; status?: string }>
 }
 
-export function ContractDetailClient({ contract, userRole }: ContractDetailClientProps) {
+export function ContractDetailClient({ contract, userRole, customers = [], trucks = [], drivers = [] }: ContractDetailClientProps) {
   const router = useRouter()
   const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false)
   const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false)
@@ -59,6 +62,8 @@ export function ContractDetailClient({ contract, userRole }: ContractDetailClien
         driverName: contract.driverName,
         driverShare: contract.driverAllocation,
         driverToll: contract.totalDriverToll,
+        companyToll: contract.totalCompanyToll,
+        totalDriverEntitlement: contract.totalDriverEntitlement,
         advanceAmount: contract.totalAdvance,
         resolution,
       })
@@ -118,8 +123,11 @@ export function ContractDetailClient({ contract, userRole }: ContractDetailClien
 
             <EditContractCostsModal
               contract={contract}
+              customers={customers}
+              trucks={trucks}
+              drivers={drivers}
               buttonClassName="px-4 py-2.5 rounded-xl bg-[#FF9500] hover:bg-[#E08200] text-white font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
-              triggerText="Edit Biaya (Tol, Inap, Bensin)"
+              triggerText="Edit Kontrak & Nilai (ERP 1 & 2)"
             />
 
             {contract.status !== 'COMPLETED' && (
@@ -192,20 +200,20 @@ export function ContractDetailClient({ contract, userRole }: ContractDetailClien
 
             <div className="p-4 rounded-xl bg-[#FAFAFA] border border-black/[0.06] space-y-2">
               <div className="flex justify-between text-[#6E6E73]">
-                <span>Nilai Kontrak Kotor:</span>
+                <span>Nilai Kontrak Kotor (ERP 1 + ERP 2):</span>
                 <span className="font-semibold text-[#1D1D1F]">{formatCurrency(contract.totalRevenue)}</span>
               </div>
-              <div className="flex justify-between text-[#FF3B30]">
-                <span>Potongan 2%:</span>
-                <span className="font-semibold">-{formatCurrency(contract.taxDeduction)}</span>
+              <div className="flex justify-between text-[#007AFF] font-medium">
+                <span>Bagian Supir (53% dari Kontrak Kotor):</span>
+                <span className="font-semibold">{formatCurrency(contract.driverAllocation)}</span>
               </div>
               <div className="flex justify-between text-[#248A3D] font-medium">
-                <span>Total Diterima Bersih (98%):</span>
-                <span className="font-semibold">{formatCurrency(contract.netContractValue)}</span>
+                <span>+ Reimbursement Tol Perusahaan (60%):</span>
+                <span className="font-semibold">+{formatCurrency(contract.totalCompanyToll)}</span>
               </div>
-              <div className="flex justify-between text-[#007AFF] font-semibold border-t border-black/[0.06] pt-1">
-                <span>Bagian Supir (53% dari Net):</span>
-                <span>{formatCurrency(contract.driverAllocation)}</span>
+              <div className="flex justify-between text-[#1D1D1F] font-bold border-t border-black/[0.06] pt-1.5">
+                <span>Total Hak Supir (Totalan Kotor):</span>
+                <span>{formatCurrency(contract.totalDriverEntitlement)}</span>
               </div>
               <div className="flex justify-between text-[#FF9500]">
                 <span>Total Uang Jalan Diberikan (Advance):</span>

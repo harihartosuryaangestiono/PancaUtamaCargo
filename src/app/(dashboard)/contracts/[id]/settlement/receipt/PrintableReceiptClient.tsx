@@ -20,10 +20,14 @@ export function PrintableReceiptClient({ contract }: PrintableReceiptClientProps
 
   const driverShareErp1 = Number(erp1?.contractValue || 0) * ((erp1?.driverPercentage || 53) / 100)
   const driverShareErp2 = Number(erp2?.contractValue || 0) * ((erp2?.driverPercentage || 53) / 100)
-  const totalDriverAllocation = driverShareErp1 + driverShareErp2
+  const totalDriverShare = driverShareErp1 + driverShareErp2
+  const totalCompanyToll = contract.totalCompanyToll !== undefined
+    ? Number(contract.totalCompanyToll)
+    : contract.legs.reduce((sum: number, l: any) => sum + Number(l.companyTollCost || 0), 0)
 
+  const totalDriverEntitlement = totalDriverShare + totalCompanyToll
   const totalAdvances = contract.advances.reduce((sum: number, a: any) => sum + Number(a.amount || 0), 0)
-  const difference = totalDriverAllocation - totalAdvances
+  const difference = totalDriverEntitlement - totalAdvances
 
   const settlement = contract.settlements[0] || null
 
@@ -51,7 +55,7 @@ export function PrintableReceiptClient({ contract }: PrintableReceiptClientProps
         <div className="flex items-start justify-between border-b-2 border-slate-900 pb-6 mb-6">
           <div>
             <h1 className="text-xl font-black uppercase tracking-wider text-slate-900">PANCA UTAMA CARGO</h1>
-            <p className="text-xs text-slate-600 font-medium">Enterprise Fleet Operations & Logistics Management</p>
+            <p className="text-xs text-slate-600 font-medium">Enterprise Fleet Operations &amp; Logistics Management</p>
             <p className="text-[11px] text-slate-500 mt-1">Jl. Raya Magelang - Jogja KM 12, Magelang • Telp: (0293) 555-123</p>
           </div>
           <div className="text-right">
@@ -73,9 +77,9 @@ export function PrintableReceiptClient({ contract }: PrintableReceiptClientProps
           </div>
 
           <div>
-            <span className="text-slate-500 uppercase tracking-wider text-[10px] font-bold block mb-1">Unit Armada & Pelanggan</span>
-            <p className="font-bold text-sm text-slate-900">Truk: {contract.truck.policeNumber}</p>
-            <p className="text-[11px] text-slate-600">Pelanggan: {contract.customer.name}</p>
+            <span className="text-slate-500 uppercase tracking-wider text-[10px] font-bold block mb-1">Unit Armada &amp; Pelanggan</span>
+            <p className="font-bold text-sm text-slate-900">Truk: {contract.truck?.policeNumber}</p>
+            <p className="text-[11px] text-slate-600">Pelanggan: {contract.customer?.name}</p>
             <p className="text-[11px] text-slate-600">Tanggal Kontrak: {new Date(contract.startDate).toLocaleDateString('id-ID')}</p>
           </div>
         </div>
@@ -88,7 +92,7 @@ export function PrintableReceiptClient({ contract }: PrintableReceiptClientProps
               <tr className="bg-slate-100 border-b border-slate-300 text-slate-700 font-bold uppercase">
                 <th className="p-2.5 border-r border-slate-300">ERP Leg</th>
                 <th className="p-2.5 border-r border-slate-300">Rute (Origin → Destination)</th>
-                <th className="p-2.5 border-r border-slate-300">Muatan & Berat</th>
+                <th className="p-2.5 border-r border-slate-300">Muatan &amp; Berat</th>
                 <th className="p-2.5 border-r border-slate-300 text-right">Nilai Kontrak</th>
                 <th className="p-2.5 text-right">Driver Share (53%)</th>
               </tr>
@@ -113,8 +117,16 @@ export function PrintableReceiptClient({ contract }: PrintableReceiptClientProps
                 </tr>
               )}
               <tr className="bg-slate-50 font-bold">
-                <td colSpan={4} className="p-2.5 text-right uppercase border-r border-slate-300">Total Hak Driver Allocation</td>
-                <td className="p-2.5 text-right text-sm text-blue-700">{formatCurrency(totalDriverAllocation)}</td>
+                <td colSpan={4} className="p-2.5 text-right uppercase border-r border-slate-300">Subtotal Driver Share (53% Kotor)</td>
+                <td className="p-2.5 text-right text-sm text-slate-900">{formatCurrency(totalDriverShare)}</td>
+              </tr>
+              <tr className="bg-slate-50 font-bold">
+                <td colSpan={4} className="p-2.5 text-right uppercase border-r border-slate-300">+ Reimbursement Tol Perusahaan (60%)</td>
+                <td className="p-2.5 text-right text-sm text-emerald-700">+{formatCurrency(totalCompanyToll)}</td>
+              </tr>
+              <tr className="bg-blue-50/70 font-black">
+                <td colSpan={4} className="p-2.5 text-right uppercase border-r border-slate-300">TOTAL HAK SUPIR (TOTALAN KOTOR)</td>
+                <td className="p-2.5 text-right text-sm text-blue-700">{formatCurrency(totalDriverEntitlement)}</td>
               </tr>
             </tbody>
           </table>
@@ -152,8 +164,8 @@ export function PrintableReceiptClient({ contract }: PrintableReceiptClientProps
         {/* Final Settlement Reconciliation Summary Box */}
         <div className="p-4 bg-slate-100 rounded-xl border border-slate-300 mb-8 text-xs space-y-2">
           <div className="flex justify-between font-semibold">
-            <span>Total Hak Driver Share (53%):</span>
-            <span>{formatCurrency(totalDriverAllocation)}</span>
+            <span>Total Hak Supir (53% Kontrak Kotor + 60% Tol):</span>
+            <span>{formatCurrency(totalDriverEntitlement)}</span>
           </div>
           <div className="flex justify-between font-semibold">
             <span>Dikurangi Total Uang Jalan Diberikan:</span>

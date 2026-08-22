@@ -217,21 +217,30 @@ export async function getContractsAction(params?: { status?: string; search?: st
   return contracts.map((c: any) => {
     let totalRevenue = 0
     let totalDistance = 0
+    let totalToll = 0
+    let totalCompanyToll = 0
 
     for (const leg of c.legs) {
       if (leg.contractValue) totalRevenue += Number(leg.contractValue)
       if (leg.distanceKm) totalDistance += leg.distanceKm
+      if (leg.tollCost) totalToll += Number(leg.tollCost)
+      if (leg.companyTollCost) totalCompanyToll += Number(leg.companyTollCost)
     }
 
     const taxDeduction = totalRevenue * 0.02
     const netContractValue = totalRevenue * 0.98
-    const totalDriverShare = netContractValue * 0.53
-    const totalCompanyShare = netContractValue * 0.47
+    // Driver Share: 53% of gross contract value (before 2% tax)
+    const totalDriverShare = totalRevenue * 0.53
+    const totalCompanyShare = totalRevenue * 0.47
+    // Total driver entitlement includes 60% company toll reimbursement
+    const totalDriverEntitlement = totalDriverShare + totalCompanyToll
 
     let totalAdvance = 0
     for (const adv of c.advances) {
       if (adv.amount) totalAdvance += Number(adv.amount)
     }
+
+    const settlementDiff = totalDriverEntitlement - totalAdvance
 
     return JSON.parse(
       JSON.stringify({
@@ -240,9 +249,13 @@ export async function getContractsAction(params?: { status?: string; search?: st
         taxDeduction,
         netContractValue,
         totalDistance,
+        totalToll,
+        totalCompanyToll,
         totalDriverShare,
         totalCompanyShare,
+        totalDriverEntitlement,
         totalAdvance,
+        settlementDiff,
       })
     )
   })
@@ -289,17 +302,26 @@ export async function getContractByIdAction(contractId: string) {
 
   const taxDeduction = totalRevenue * 0.02
   const netContractValue = totalRevenue * 0.98
-  const driverAllocation = netContractValue * 0.53
-  const companyAllocation = netContractValue * 0.47
+
+  // 1. Driver share: 53% of GROSS contract value (before 2% tax)
+  const driverAllocation = totalRevenue * 0.53
+
+  // 2. Total Driver Entitlement: 53% gross + 60% company toll reimbursement
+  const totalDriverEntitlement = driverAllocation + totalCompanyToll
+
+  // 3. Company Share & Contribution
+  const companyAllocation = totalRevenue * 0.47
   const companyExpenses = totalCompanyToll + totalFuelCost + totalOtherCost
-  const netCompanyContribution = companyAllocation - companyExpenses
+  // Net Company Contribution = Gross (47%) - Tax (2%) - Company Expenses (Toll 60% + Fuel + Inap)
+  const netCompanyContribution = netContractValue - driverAllocation - companyExpenses
 
   let totalAdvance = 0
   for (const adv of c.advances) {
     if (adv.amount) totalAdvance += Number(adv.amount)
   }
 
-  const settlementDiff = driverAllocation - totalAdvance
+  // Settlement Difference = Total Driver Entitlement - Total Advances Given
+  const settlementDiff = totalDriverEntitlement - totalAdvance
 
   return JSON.parse(
     JSON.stringify({
@@ -314,6 +336,7 @@ export async function getContractByIdAction(contractId: string) {
       totalFuelCost,
       totalOtherCost,
       driverAllocation,
+      totalDriverEntitlement,
       companyAllocation,
       companyExpenses,
       netCompanyContribution,
@@ -413,3 +436,141 @@ export async function updateContractOperationalCostsAction(input: UpdateContract
   revalidatePath('/reports/executive')
   return { success: true }
 }
+
+export interface UpdateLegInput {
+  id: string
+  origin: string
+  destination: string
+  cargoType: string
+  cargoWeightTon: number
+  distanceKm: number
+  contractValue: number
+  tollCost?: number
+  fuelCost?: number
+  otherCost?: number
+  customerId?: string
+}
+
+export interface UpdateTripContractInput {
+  contractId: string
+  customerId: string
+  truckId: string
+  driverId?: string
+  driverName: string
+  startDate: string
+  notes?: string
+  outboundLeg: UpdateLegInput
+  returnLeg: UpdateLegInput
+}
+
+export async function updateTripContractAction(input: UpdateTripContractInput) {
+  const session = await requireOwner()
+
+  if (!input.contractId) {
+    return { error: 'ID Kontrak tidak ditemukan.' }
+  }
+
+  if (!input.customerId || !input.truckId || (!input.driverName && !input.driverId)) {
+    return { error: 'Customer, Truck, dan Supir wajib diisi.' }
+  }
+
+  if (!input.outboundLeg.origin || !input.outboundLeg.destination) {
+    return { error: 'Rute asal dan tujuan ERP 1 Berangkat wajib diisi.' }
+  }
+
+  if (!input.returnLeg.origin || !input.returnLeg.destination) {
+    return { error: 'Rute asal dan tujuan ERP 2 Pulang wajib diisi.' }
+  }
+
+  const existing = await prisma.tripContract.findUnique({
+    where: { id: input.contractId },
+    include: { legs: true },
+  })
+
+  if (!existing) {
+    return { error: 'Kontrak tidak ditemukan.' }
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    let driverId = input.driverId || null
+    let driverName = input.driverName
+
+    if (driverId) {
+      const d = await tx.driver.findUnique({ where: { id: driverId } })
+      if (d) driverName = d.name
+    }
+
+    // 1. Update Contract Header
+    const updatedContract = await tx.tripContract.update({
+      where: { id: input.contractId },
+      data: {
+        customerId: input.customerId,
+        truckId: input.truckId,
+        driverId,
+        driverName,
+        startDate: new Date(input.startDate),
+        notes: input.notes || null,
+      },
+    })
+
+    // 2. Update Outbound Leg (ERP 1)
+    const outToll = Number(input.outboundLeg.tollCost) || 0
+    const outValue = Number(input.outboundLeg.contractValue) || 0
+    const updatedOutLeg = await tx.tripLeg.update({
+      where: { id: input.outboundLeg.id },
+      data: {
+        origin: input.outboundLeg.origin,
+        destination: input.outboundLeg.destination,
+        cargoType: input.outboundLeg.cargoType || 'General Freight',
+        cargoWeightTon: Number(input.outboundLeg.cargoWeightTon) || 0,
+        distanceKm: Number(input.outboundLeg.distanceKm) || 0,
+        contractValue: outValue,
+        tollCost: outToll,
+        companyTollCost: outToll * 0.60,
+        driverTollCost: outToll * 0.40,
+        fuelCost: Number(input.outboundLeg.fuelCost) || 0,
+        otherCost: Number(input.outboundLeg.otherCost) || 0,
+        customerId: input.outboundLeg.customerId || input.customerId,
+      },
+    })
+
+    // 3. Update Return Leg (ERP 2)
+    const retToll = Number(input.returnLeg.tollCost) || 0
+    const retValue = Number(input.returnLeg.contractValue) || 0
+    const updatedRetLeg = await tx.tripLeg.update({
+      where: { id: input.returnLeg.id },
+      data: {
+        origin: input.returnLeg.origin,
+        destination: input.returnLeg.destination,
+        cargoType: input.returnLeg.cargoType || 'General Freight',
+        cargoWeightTon: Number(input.returnLeg.cargoWeightTon) || 0,
+        distanceKm: Number(input.returnLeg.distanceKm) || 0,
+        contractValue: retValue,
+        tollCost: retToll,
+        companyTollCost: retToll * 0.60,
+        driverTollCost: retToll * 0.40,
+        fuelCost: Number(input.returnLeg.fuelCost) || 0,
+        otherCost: Number(input.returnLeg.otherCost) || 0,
+        customerId: input.returnLeg.customerId || input.customerId,
+      },
+    })
+
+    return { contract: updatedContract, leg1: updatedOutLeg, leg2: updatedRetLeg }
+  }, { timeout: 30000, maxWait: 10000 })
+
+  await createAuditLog({
+    action: 'UPDATE_TRIP_CONTRACT',
+    module: 'CONTRACT',
+    recordId: input.contractId,
+    beforeValue: existing,
+    afterValue: result.contract,
+  })
+
+  revalidatePath(`/contracts/${input.contractId}`)
+  revalidatePath('/contracts')
+  revalidatePath('/dashboard')
+  revalidatePath('/reports/executive')
+  revalidatePath('/financials/bookkeeping')
+  return { success: true, contract: result.contract }
+}
+
