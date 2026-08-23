@@ -62,7 +62,7 @@ export default async function ContractsPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
         <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-5">
           <span className="text-[11px] font-medium text-[#6E6E73]">Total Kontrak Perjalanan</span>
           <p className="text-2xl font-semibold text-[#1D1D1F] mt-1">{contracts.length}</p>

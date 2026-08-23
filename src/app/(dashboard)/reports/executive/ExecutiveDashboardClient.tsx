@@ -86,7 +86,7 @@ export function ExecutiveDashboardClient({ initialData, initialPeriod, userRole 
   })
 
   return (
-    <div className="max-w-[1440px] mx-auto space-y-8 p-6 sm:p-8 lg:p-10 font-sans text-[#1D1D1F] bg-[#F5F5F7] min-h-screen">
+    <div className="space-y-6 sm:space-y-8 text-[#1D1D1F]">
       {/* SECTION 5: HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-black/[0.08] print:hidden">
         <div>
@@ -170,7 +170,7 @@ export function ExecutiveDashboardClient({ initialData, initialPeriod, userRole 
 
       {/* SECTION 18: EMPTY STATE IF DATABASE HAS ZERO CONTRACTS */}
       {isDataEmpty ? (
-        <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-12 text-center space-y-4 max-w-2xl mx-auto my-12">
+        <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-8 sm:p-12 text-center space-y-4 max-w-2xl mx-auto my-6 sm:my-12">
           <div className="w-14 h-14 rounded-2xl bg-[#007AFF]/10 text-[#007AFF] flex items-center justify-center mx-auto">
             <FileText className="w-7 h-7" />
           </div>
@@ -198,15 +198,15 @@ export function ExecutiveDashboardClient({ initialData, initialPeriod, userRole 
       ) : (
         <>
           {/* SECTION 8: PROFIT HERO SECTION */}
-          <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-8">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+          <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-6 sm:p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 sm:gap-8">
               {/* Left Hero Focus: NET PROFIT */}
               <div className="space-y-2">
                 <span className="text-[11px] font-semibold text-[#6E6E73] tracking-widest uppercase block">
                   NET PROFIT (Laba Bersih PT)
                 </span>
-                <div className="flex flex-wrap items-baseline gap-4">
-                  <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight text-[#1D1D1F]">
+                <div className="flex flex-wrap items-baseline gap-3 sm:gap-4">
+                  <h2 className="text-3xl sm:text-5xl font-semibold tracking-tight text-[#1D1D1F]">
                     {formatCurrency(s.netProfit)}
                   </h2>
                   {s.profitGrowthPct !== null && (
@@ -229,20 +229,20 @@ export function ExecutiveDashboardClient({ initialData, initialPeriod, userRole 
               </div>
 
               {/* Right Sub-metrics Grid */}
-              <div className="grid grid-cols-3 gap-6 pt-4 lg:pt-0 lg:border-l border-black/[0.08] lg:pl-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 pt-4 lg:pt-0 border-t lg:border-t-0 lg:border-l border-black/[0.08] lg:pl-8">
                 <div>
                   <span className="text-[11px] font-medium text-[#6E6E73] block mb-1">Total Revenue</span>
-                  <p className="text-xl font-semibold text-[#1D1D1F]">{formatCurrency(s.totalRevenue)}</p>
+                  <p className="text-lg sm:text-xl font-semibold text-[#1D1D1F]">{formatCurrency(s.totalRevenue)}</p>
                   <span className="text-[10px] text-[#6E6E73]">98% Net Received</span>
                 </div>
                 <div>
                   <span className="text-[11px] font-medium text-[#6E6E73] block mb-1">Operating Cost</span>
-                  <p className="text-xl font-semibold text-[#1D1D1F]">{formatCurrency(s.totalOperatingCost)}</p>
+                  <p className="text-lg sm:text-xl font-semibold text-[#1D1D1F]">{formatCurrency(s.totalOperatingCost)}</p>
                   <span className="text-[10px] text-[#6E6E73]">Fuel, Toll, Service</span>
                 </div>
                 <div>
                   <span className="text-[11px] font-medium text-[#6E6E73] block mb-1">Profit Margin</span>
-                  <p className="text-xl font-semibold text-[#34C759]">{s.profitMargin.toFixed(1)}%</p>
+                  <p className="text-lg sm:text-xl font-semibold text-[#34C759]">{s.profitMargin.toFixed(1)}%</p>
                   <span className="text-[10px] text-[#6E6E73]">Net Profit / Revenue</span>
                 </div>
               </div>
@@ -250,7 +250,7 @@ export function ExecutiveDashboardClient({ initialData, initialPeriod, userRole 
           </div>
 
           {/* SECTION 6: 4 CLEAN KPI CARDS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
             {/* CARD 1: REVENUE */}
             <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-6 space-y-2 hover:-translate-y-[1px] transition-all duration-200">
               <div className="flex items-center justify-between text-[11px] font-medium text-[#6E6E73]">

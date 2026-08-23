@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Shield, LogOut, Lock, Sparkles } from 'lucide-react'
+import { Shield, LogOut, Lock, Sparkles, Menu } from 'lucide-react'
 import { CommandPalette } from '@/components/layout/CommandPalette'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 import { logoutAction } from '@/app/actions/authActions'
@@ -12,6 +12,7 @@ interface HeaderProps {
   subtitle?: string
   userRole: 'OWNER' | 'FINANCE' | 'VIEWER'
   userName: string
+  onOpenMobileSidebar?: () => void
   alerts?: Array<{
     id: string
     type: 'TIRE' | 'SPAREPART' | 'TRUCK'
@@ -22,24 +23,38 @@ interface HeaderProps {
   }>
 }
 
-export function Header({ title, subtitle, userRole, userName, alerts = [] }: HeaderProps) {
+export function Header({ title, subtitle, userRole, userName, onOpenMobileSidebar, alerts = [] }: HeaderProps) {
   const [profileOpen, setProfileOpen] = useState(false)
   const initial = userName ? userName.charAt(0).toUpperCase() : 'U'
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between px-8 py-3.5 bg-white border-b border-black/[0.08]">
-      <div>
-        <h1 className="text-lg font-semibold tracking-tight text-[#1D1D1F]">
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="text-xs text-[#6E6E73] mt-0.5 font-normal">
-            {subtitle}
-          </p>
+    <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-8 py-3 sm:py-3.5 bg-white border-b border-black/[0.08]">
+      <div className="flex items-center gap-3">
+        {/* Mobile / Tablet Hamburger Toggle Button */}
+        {onOpenMobileSidebar && (
+          <button
+            type="button"
+            onClick={onOpenMobileSidebar}
+            className="lg:hidden p-2 rounded-xl text-[#1D1D1F] hover:bg-[#F5F5F7] transition-colors border border-black/[0.06]"
+            aria-label="Buka Menu"
+          >
+            <Menu className="w-5 h-5 text-[#1D1D1F]" />
+          </button>
         )}
+
+        <div>
+          <h1 className="text-base sm:text-lg font-semibold tracking-tight text-[#1D1D1F]">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="text-xs text-[#6E6E73] mt-0.5 font-normal hidden sm:block">
+              {subtitle}
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* Command Palette Search */}
         <CommandPalette />
 
@@ -50,7 +65,7 @@ export function Header({ title, subtitle, userRole, userName, alerts = [] }: Hea
         <div className="relative">
           <button
             onClick={() => setProfileOpen((prev) => !prev)}
-            className="flex items-center gap-2 p-1 pl-2.5 bg-[#F2F2F7] hover:bg-[#E5E5EA] rounded-full border border-black/[0.06] transition-all active:scale-95"
+            className="flex items-center gap-2 p-1 pl-2 sm:pl-2.5 bg-[#F2F2F7] hover:bg-[#E5E5EA] rounded-full border border-black/[0.06] transition-all active:scale-95"
           >
             <span className="text-xs font-semibold text-[#1D1D1F] hidden md:inline">
               {userName}
@@ -98,7 +113,7 @@ export function Header({ title, subtitle, userRole, userName, alerts = [] }: Hea
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[#FF3B30] hover:bg-rose-50 transition-colors font-semibold text-left"
                   >
                     <LogOut className="w-3.5 h-3.5" />
-                    <span>Logout Keluar</span>
+                    <span>Keluar (Logout)</span>
                   </button>
                 </form>
               </div>

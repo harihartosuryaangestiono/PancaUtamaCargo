@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Building2,
   FileSpreadsheet,
+  X,
 } from 'lucide-react'
 
 type RoleType = 'OWNER' | 'FINANCE' | 'VIEWER'
@@ -26,9 +27,11 @@ type RoleType = 'OWNER' | 'FINANCE' | 'VIEWER'
 interface SidebarProps {
   userRole: RoleType
   userName: string
+  isOpenMobile?: boolean
+  onCloseMobile?: () => void
 }
 
-export function Sidebar({ userRole, userName }: SidebarProps) {
+export function Sidebar({ userRole, userName, isOpenMobile = false, onCloseMobile }: SidebarProps) {
   const pathname = usePathname()
 
   const navGroups = [
@@ -145,21 +148,34 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
     },
   ]
 
-  return (
-    <aside className="w-64 bg-white text-[#1D1D1F] flex flex-col h-screen sticky top-0 border-r border-black/[0.08] shrink-0 select-none">
+  const sidebarContent = (
+    <>
       {/* Brand Header */}
-      <div className="p-4 flex items-center gap-3 border-b border-black/[0.06]">
-        <div className="relative w-10 h-10 rounded-full overflow-hidden border border-black/[0.08] bg-white shrink-0 shadow-2xs">
-          <img
-            src="/LogoPancaUtamaCargoCircular.png"
-            alt="Logo Panca Utama Cargo"
-            className="w-full h-full object-contain p-0.5 rounded-full"
-          />
+      <div className="p-4 flex items-center justify-between border-b border-black/[0.06]">
+        <div className="flex items-center gap-3">
+          <div className="relative w-10 h-10 rounded-full overflow-hidden border border-black/[0.08] bg-white shrink-0 shadow-2xs">
+            <img
+              src="/LogoPancaUtamaCargoCircular.png"
+              alt="Logo Panca Utama Cargo"
+              className="w-full h-full object-contain p-0.5 rounded-full"
+            />
+          </div>
+          <div>
+            <h1 className="font-bold text-[#1D1D1F] text-xs tracking-tight leading-snug">Panca Utama Cargo</h1>
+            <p className="text-[10px] text-[#34C759] font-semibold tracking-wide">Aman · Tepat · Terpercaya</p>
+          </div>
         </div>
-        <div>
-          <h1 className="font-bold text-[#1D1D1F] text-xs tracking-tight leading-snug">Panca Utama Cargo</h1>
-          <p className="text-[10px] text-[#34C759] font-semibold tracking-wide">Aman · Tepat · Terpercaya</p>
-        </div>
+
+        {/* Mobile Drawer Close Button */}
+        {onCloseMobile && (
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="lg:hidden p-1.5 text-[#8E8E93] hover:text-[#1D1D1F] hover:bg-[#F5F5F7] rounded-xl transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Navigation Groups */}
@@ -187,6 +203,7 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={() => onCloseMobile?.()}
                       className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all duration-150 ${
                         isActive
                           ? 'bg-[#F2F2F7] text-[#1D1D1F] font-semibold border border-black/[0.04]'
@@ -212,7 +229,7 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
         <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-black/[0.06] shadow-xs">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <div className="w-8 h-8 rounded-lg bg-[#007AFF]/10 text-[#007AFF] font-bold text-xs flex items-center justify-center shrink-0 border border-[#007AFF]/20">
-              {userName.charAt(0)}
+              {userName ? userName.charAt(0) : 'U'}
             </div>
             <div className="truncate">
               <p className="text-xs font-semibold text-[#1D1D1F] truncate">{userName}</p>
@@ -241,6 +258,30 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
           </button>
         </div>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Desktop Permanent Sidebar (Screen >= lg) */}
+      <aside className="hidden lg:flex w-64 bg-white text-[#1D1D1F] flex-col h-screen sticky top-0 border-r border-black/[0.08] shrink-0 select-none">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile & Tablet Drawer Overlay (Screen < lg) */}
+      {isOpenMobile && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
+            onClick={onCloseMobile}
+          />
+          {/* Drawer Panel */}
+          <aside className="relative z-50 w-72 max-w-[85vw] bg-white text-[#1D1D1F] flex flex-col h-full border-r border-black/[0.08] shadow-2xl select-none animate-in slide-in-from-left duration-200">
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+    </>
   )
 }
