@@ -1,12 +1,11 @@
-import { requireOwner } from '@/lib/session'
+import { requireAuth } from '@/lib/session'
 import { getCompanySettingsAction, getUsersAction, getAuditLogsAction } from '@/app/actions/settingsActions'
 import { formatDate } from '@/lib/utils/format'
 import { Settings, Shield, Users } from 'lucide-react'
 import { SettingsForm } from './SettingsForm'
 
 export default async function SettingsPage() {
-  // Server-Side RBAC Guard: Strictly OWNER only! Finance gets 403 / redirect
-  const session = await requireOwner()
+  const session = await requireAuth()
 
   const settings = await getCompanySettingsAction()
   const users = await getUsersAction()
@@ -39,7 +38,7 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <SettingsForm settings={settings} />
+        <SettingsForm settings={settings} userRole={session.role} />
       </div>
 
       {/* Authorized Users */}

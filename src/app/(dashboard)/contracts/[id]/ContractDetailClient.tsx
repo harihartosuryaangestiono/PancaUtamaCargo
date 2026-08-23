@@ -12,7 +12,7 @@ import { EditContractCostsModal } from '../EditContractCostsModal'
 
 interface ContractDetailClientProps {
   contract: any
-  userRole: 'OWNER' | 'FINANCE'
+  userRole: 'OWNER' | 'FINANCE' | 'VIEWER'
   customers?: Array<{ id: string; name: string }>
   trucks?: Array<{ id: string; policeNumber: string; brand: string; model: string }>
   drivers?: Array<{ id: string; driverCode: string; name: string; status?: string }>

@@ -10,7 +10,7 @@ import Link from 'next/link'
 interface HeaderProps {
   title: string
   subtitle?: string
-  userRole: 'OWNER' | 'FINANCE'
+  userRole: 'OWNER' | 'FINANCE' | 'VIEWER'
   userName: string
   alerts?: Array<{
     id: string

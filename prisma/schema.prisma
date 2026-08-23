@@ -12,6 +12,7 @@ generator client {
 enum Role {
   OWNER
   FINANCE
+  VIEWER
 }
 
 enum TireStatus {

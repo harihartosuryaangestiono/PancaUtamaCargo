@@ -24,7 +24,7 @@ interface TruckWorkspaceTabsProps {
   healthScore: any
   digitalLogbook: any[]
   availableUnmountedTires: any[]
-  userRole: 'OWNER' | 'FINANCE'
+  userRole: 'OWNER' | 'FINANCE' | 'VIEWER'
 }
 
 export function TruckWorkspaceTabs({

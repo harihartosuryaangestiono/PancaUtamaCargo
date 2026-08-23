@@ -5,11 +5,13 @@ import { Plus, Truck, Disc, Package, Users, Fuel, Wrench, PackagePlus, DollarSig
 import Link from 'next/link'
 
 interface QuickActionFabProps {
-  userRole?: 'OWNER' | 'FINANCE'
+  userRole?: 'OWNER' | 'FINANCE' | 'VIEWER'
 }
 
 export function QuickActionFab({ userRole = 'OWNER' }: QuickActionFabProps) {
   const [isOpen, setIsOpen] = useState(false)
+
+  if (userRole === 'VIEWER') return null
 
   const isOwner = userRole === 'OWNER'
 

@@ -10,9 +10,11 @@ interface SettingsFormProps {
     tireWarningPercent: number
     tireCriticalPercent: number
   }
+  userRole?: string
 }
 
-export function SettingsForm({ settings }: SettingsFormProps) {
+export function SettingsForm({ settings, userRole }: SettingsFormProps) {
+  const isViewer = userRole === 'VIEWER'
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -63,8 +65,9 @@ export function SettingsForm({ settings }: SettingsFormProps) {
           type="text"
           name="companyName"
           defaultValue={settings.companyName}
+          disabled={isViewer}
           required
-          className="w-full px-3.5 py-2 text-xs bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white outline-none font-medium transition-all"
+          className="w-full px-3.5 py-2 text-xs bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white outline-none font-medium transition-all disabled:opacity-75"
         />
       </div>
 
@@ -77,8 +80,9 @@ export function SettingsForm({ settings }: SettingsFormProps) {
             type="number"
             name="defaultTireLifetimeKm"
             defaultValue={settings.defaultTireLifetimeKm}
+            disabled={isViewer}
             required
-            className="w-full px-3.5 py-2 text-xs bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white outline-none font-mono font-medium transition-all"
+            className="w-full px-3.5 py-2 text-xs bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white outline-none font-mono font-medium transition-all disabled:opacity-75"
           />
         </div>
 
@@ -90,8 +94,9 @@ export function SettingsForm({ settings }: SettingsFormProps) {
             type="number"
             name="tireWarningPercent"
             defaultValue={settings.tireWarningPercent}
+            disabled={isViewer}
             required
-            className="w-full px-3.5 py-2 text-xs bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white outline-none font-mono font-medium transition-all"
+            className="w-full px-3.5 py-2 text-xs bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white outline-none font-mono font-medium transition-all disabled:opacity-75"
           />
         </div>
 
@@ -103,21 +108,24 @@ export function SettingsForm({ settings }: SettingsFormProps) {
             type="number"
             name="tireCriticalPercent"
             defaultValue={settings.tireCriticalPercent}
+            disabled={isViewer}
             required
-            className="w-full px-3.5 py-2 text-xs bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white outline-none font-mono font-medium transition-all"
+            className="w-full px-3.5 py-2 text-xs bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white outline-none font-mono font-medium transition-all disabled:opacity-75"
           />
         </div>
       </div>
 
-      <div className="pt-2">
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-5 py-2 text-xs font-semibold text-white bg-[#007AFF] hover:bg-[#0062CC] rounded-xl shadow-2xs transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Menyimpan...' : 'Simpan Pengaturan'}
-        </button>
-      </div>
+      {!isViewer && (
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-5 py-2 text-xs font-semibold text-white bg-[#007AFF] hover:bg-[#0062CC] rounded-xl shadow-2xs transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Menyimpan...' : 'Simpan Pengaturan'}
+          </button>
+        </div>
+      )}
     </form>
   )
 }

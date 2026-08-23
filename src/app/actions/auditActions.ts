@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { requireOwner } from '@/lib/session'
+import { requireOwner, requireAuth } from '@/lib/session'
 
 export interface AuditLogFilterInput {
   userId?: string
@@ -15,9 +15,10 @@ export interface AuditLogFilterInput {
 }
 
 export async function getAuditLogsAction(filters: AuditLogFilterInput = {}) {
-  // Strict Server-Side RBAC Enforcement: OWNER ONLY
-  // If user is FINANCE, requireOwner throws error (which caller catches or receives 403)
-  const session = await requireOwner()
+  const session = await requireAuth()
+  if (session.role !== 'OWNER' && session.role !== 'VIEWER') {
+    throw new Error('FORBIDDEN_AUDIT_LOG_ACCESS')
+  }
 
   const page = filters.page || 1
   const pageSize = filters.pageSize || 25

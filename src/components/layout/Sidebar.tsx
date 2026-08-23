@@ -20,9 +20,8 @@ import {
   Building2,
   FileSpreadsheet,
 } from 'lucide-react'
-import { logoutAction } from '@/app/actions/authActions'
 
-type RoleType = 'OWNER' | 'FINANCE'
+type RoleType = 'OWNER' | 'FINANCE' | 'VIEWER'
 
 interface SidebarProps {
   userRole: RoleType
@@ -40,49 +39,49 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
           label: 'Dashboard',
           href: '/dashboard',
           icon: LayoutDashboard,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {
           label: 'Truck Tronton',
           href: '/trucks',
           icon: Truck,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {
           label: 'Kontrak Perjalanan',
           href: '/contracts',
           icon: FileText,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {
           label: 'Pengemudi Armada',
           href: '/drivers',
           icon: Users,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {
           label: 'Manajemen Ban',
           href: '/tires',
           icon: Disc,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {
           label: 'Pelanggan',
           href: '/customers',
           icon: Users,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {
           label: 'Maintenance',
           href: '/maintenance',
           icon: Wrench,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {
           label: 'Dokumen Fleet',
           href: '/documents',
           icon: FileText,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
       ],
     },
@@ -93,31 +92,31 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
           label: 'Pembukuan Keuangan',
           href: '/financials',
           icon: DollarSign,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {
           label: 'Mutasi Rekening BCA',
           href: '/financials/bca-mutations',
           icon: Building2,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {
           label: 'Pembukuan Buku Kas',
           href: '/financials/spreadsheet-mutations',
           icon: FileSpreadsheet,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {
           label: 'Stok & Sparepart',
           href: '/spareparts',
           icon: Package,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {
           label: 'Leaderboard Supir',
           href: '/reports/drivers',
           icon: FileText,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
       ],
     },
@@ -128,19 +127,19 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
           label: 'Master Data',
           href: '/master-data',
           icon: Database,
-          roles: ['OWNER', 'FINANCE'],
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {
           label: 'Pengaturan Sistem',
           href: '/settings',
           icon: Settings,
-          roles: ['OWNER'],
+          roles: ['OWNER', 'VIEWER'],
         },
         {
           label: 'Audit Log',
           href: '/audit',
           icon: Shield,
-          roles: ['OWNER'],
+          roles: ['OWNER', 'VIEWER'],
         },
       ],
     },
@@ -220,9 +219,11 @@ export function Sidebar({ userRole, userName }: SidebarProps) {
               <span className={`inline-block px-1.5 py-0.5 text-[9px] font-bold rounded-md uppercase tracking-wider ${
                 userRole === 'OWNER'
                   ? 'bg-[#34C759]/10 text-[#248A3D] border border-[#34C759]/20'
-                  : 'bg-[#FF9500]/10 text-[#C67300] border border-[#FF9500]/20'
+                  : userRole === 'FINANCE'
+                  ? 'bg-[#FF9500]/10 text-[#C67300] border border-[#FF9500]/20'
+                  : 'bg-[#007AFF]/10 text-[#007AFF] border border-[#007AFF]/20'
               }`}>
-                {userRole}
+                {userRole === 'VIEWER' ? 'VIEW-ONLY' : userRole}
               </span>
             </div>
           </div>

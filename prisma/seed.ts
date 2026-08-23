@@ -65,6 +65,23 @@ async function main() {
   })
   console.log(`Seeded Finance Account: ${financeUser.name} (${financeUser.email})`)
 
+  const mamaHash = await bcrypt.hash('lusicantik123!', 10)
+  const mamaUser = await prisma.user.upsert({
+    where: { email: 'w.lusianawati@gmail.com' },
+    update: {
+      name: 'W. Lusianawati',
+      role: 'VIEWER',
+      passwordHash: mamaHash,
+    },
+    create: {
+      name: 'W. Lusianawati',
+      email: 'w.lusianawati@gmail.com',
+      role: 'VIEWER',
+      passwordHash: mamaHash,
+    },
+  })
+  console.log(`Seeded Viewer Account: ${mamaUser.name} (${mamaUser.email})`)
+
   // 2. Company Settings (Single System Config Record)
   const settings = await prisma.companySettings.findFirst()
   if (!settings) {

@@ -16,7 +16,7 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
   const session = await requireAuth()
   const params = await searchParams
 
-  if (session.role !== 'OWNER') {
+  if (session.role !== 'OWNER' && session.role !== 'VIEWER') {
     return (
       <div className="p-12 text-center bg-white rounded-2xl border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] max-w-xl mx-auto space-y-4 text-[#1D1D1F]">
         <div className="w-16 h-16 rounded-2xl bg-rose-50 text-[#FF3B30] flex items-center justify-center mx-auto">
