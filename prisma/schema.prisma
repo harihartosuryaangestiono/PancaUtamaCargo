@@ -666,6 +666,8 @@ enum DriverStatus {
 enum DriverLedgerType {
   DRIVER_ADVANCE_GIVEN
   DRIVER_SETTLEMENT_PAYMENT
+  DRIVER_SAVINGS_DEPOSIT
+  DRIVER_SAVINGS_WITHDRAW
   DRIVER_REFUND
   DRIVER_OFFSET
 }
@@ -800,6 +802,8 @@ model DriverSettlement {
   finalDriverAmount    Decimal                         @default(0)
   amountAlreadyPaid    Decimal                         @default(0)
   remainingAmount      Decimal                         @default(0)
+  paidAmount           Decimal                         @default(0)
+  savingsAmount        Decimal                         @default(0)
   settlementDifference Decimal                         @default(0)
   differenceResolution SettlementDifferenceResolution?
   settlementDate       DateTime                        @default(now())

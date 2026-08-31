@@ -29,7 +29,11 @@ export function PrintableReceiptClient({ contract }: PrintableReceiptClientProps
   const totalAdvances = contract.advances.reduce((sum: number, a: any) => sum + Number(a.amount || 0), 0)
   const difference = totalDriverEntitlement - totalAdvances
 
-  const settlement = contract.settlements[0] || null
+  const settlement = contract.settlements?.[0] || null
+  const savingsAmount = Number(settlement?.savingsAmount || 0)
+  const paidAmount = settlement?.paidAmount !== undefined && Number(settlement?.paidAmount) > 0
+    ? Number(settlement.paidAmount)
+    : Math.max(0, difference - savingsAmount)
 
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-8 space-y-6">
@@ -171,10 +175,22 @@ export function PrintableReceiptClient({ contract }: PrintableReceiptClientProps
             <span>Dikurangi Total Uang Jalan Diberikan:</span>
             <span>- {formatCurrency(totalAdvances)}</span>
           </div>
-          <div className="flex justify-between text-sm font-black pt-2 border-t border-slate-300">
+          <div className="flex justify-between text-xs font-bold pt-2 border-t border-slate-300">
             <span>SISA TOTALAN SUPIR (SETTLEMENT BALANCE):</span>
-            <span className={difference >= 0 ? 'text-emerald-700' : 'text-amber-700'}>
+            <span className={difference >= 0 ? 'text-slate-900' : 'text-amber-700'}>
               {formatCurrency(difference)}
+            </span>
+          </div>
+          {savingsAmount > 0 && (
+            <div className="flex justify-between font-semibold text-blue-700">
+              <span>Dipotong untuk Simpanan Supir (Tabungan):</span>
+              <span>- {formatCurrency(savingsAmount)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-sm font-black pt-1.5 border-t border-slate-300">
+            <span>JUMLAH DIBAYARKAN KE SUPIR (NET):</span>
+            <span className={difference >= 0 ? 'text-emerald-700' : 'text-amber-700'}>
+              {formatCurrency(paidAmount)}
             </span>
           </div>
           <div className="flex justify-between text-xs font-bold text-slate-700 pt-1">

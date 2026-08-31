@@ -174,6 +174,7 @@ export function EditContractCostsModal({
 
       setIsOpen(false)
       router.refresh()
+      window.location.reload()
     } catch (err: any) {
       setError(err.message || 'Gagal menyimpan perubahan kontrak.')
     } finally {

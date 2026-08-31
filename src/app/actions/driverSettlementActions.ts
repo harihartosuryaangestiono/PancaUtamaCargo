@@ -52,6 +52,8 @@ export interface SettleDriverInput {
   companyToll?: number
   totalDriverEntitlement?: number
   advanceAmount: number
+  paidAmount?: number
+  savingsAmount?: number
   resolution: 'RETURN_TO_COMPANY' | 'ADDITIONAL_PAYMENT' | 'OFFSET_TO_NEXT_TRIP' | 'OTHER'
   notes?: string
 }
@@ -70,6 +72,8 @@ export async function settleDriverAction(input: SettleDriverInput) {
 
   const diff = entitlement - input.advanceAmount
   const finalAmount = entitlement
+  const savings = input.savingsAmount !== undefined ? input.savingsAmount : 0
+  const paid = input.paidAmount !== undefined ? input.paidAmount : Math.max(0, diff - savings)
 
   const settlement = await prisma.$transaction(async (tx) => {
     const s = await tx.driverSettlement.create({
@@ -80,6 +84,8 @@ export async function settleDriverAction(input: SettleDriverInput) {
         driverToll: input.driverToll || 0,
         advanceAmount: input.advanceAmount,
         finalDriverAmount: finalAmount,
+        paidAmount: paid,
+        savingsAmount: savings,
         settlementDifference: diff,
         differenceResolution: input.resolution,
         status: 'SETTLED',

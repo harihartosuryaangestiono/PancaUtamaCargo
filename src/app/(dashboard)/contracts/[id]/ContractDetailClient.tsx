@@ -26,10 +26,15 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
   const [actionLoading, setActionLoading] = useState(false)
   const [advanceAmount, setAdvanceAmount] = useState('3000000')
   const [resolution, setResolution] = useState<'RETURN_TO_COMPANY' | 'ADDITIONAL_PAYMENT' | 'OFFSET_TO_NEXT_TRIP' | 'OTHER'>('RETURN_TO_COMPANY')
+  const [savingsAmount, setSavingsAmount] = useState('0')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const isOwner = userRole === 'OWNER'
+
+  const settlementDiff = contract.settlementDiff || 0
+  const savingsNum = Math.max(0, Number(savingsAmount) || 0)
+  const paidNum = Math.max(0, settlementDiff - savingsNum)
 
   async function handleRecordAdvance() {
     try {
@@ -46,6 +51,7 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
       }
       setIsAdvanceModalOpen(false)
       router.refresh()
+      window.location.reload()
     } catch (err: any) {
       setError(err.message || 'Gagal menyimpan uang jalan.')
     } finally {
@@ -65,6 +71,8 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
         companyToll: contract.totalCompanyToll,
         totalDriverEntitlement: contract.totalDriverEntitlement,
         advanceAmount: contract.totalAdvance,
+        savingsAmount: savingsNum,
+        paidAmount: paidNum,
         resolution,
       })
       if (res.error) {
@@ -73,6 +81,7 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
       }
       setIsSettlementModalOpen(false)
       router.refresh()
+      window.location.reload()
     } catch (err: any) {
       setError(err.message || 'Gagal memproses totalan supir.')
     } finally {
@@ -221,11 +230,38 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
               </div>
               <div className="flex justify-between font-semibold border-t border-black/[0.06] pt-2 text-[#1D1D1F]">
                 <span>Selisih Totalan (Difference):</span>
-                <span className={contract.settlementDiff >= 0 ? 'text-[#34C759]' : 'text-[#FF3B30]'}>
-                  {formatCurrency(contract.settlementDiff)}
+                <span className={settlementDiff >= 0 ? 'text-[#34C759]' : 'text-[#FF3B30]'}>
+                  {formatCurrency(settlementDiff)}
                 </span>
               </div>
             </div>
+
+            {/* Simpanan Supir Allocation Input */}
+            {settlementDiff > 0 && (
+              <div className="p-4 rounded-xl bg-[#F0F7FF] border border-[#007AFF]/20 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-[#007AFF] text-xs">Simpanan Supir (Rp)</label>
+                  <span className="text-[11px] text-[#6E6E73]">Tabungan Cadangan Terpal/Kecelakaan</span>
+                </div>
+                <input
+                  type="number"
+                  value={savingsAmount}
+                  onChange={(e) => setSavingsAmount(e.target.value)}
+                  placeholder="0"
+                  className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#007AFF]/30 text-xs font-bold text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/50"
+                />
+                <div className="space-y-1 text-[11px] pt-1 border-t border-[#007AFF]/10">
+                  <div className="flex justify-between text-[#6E6E73]">
+                    <span>Dipotong Simpanan Supir:</span>
+                    <span className="font-semibold text-[#007AFF]">-{formatCurrency(savingsNum)}</span>
+                  </div>
+                  <div className="flex justify-between text-[#1D1D1F] font-bold">
+                    <span>Net Dibayarkan Langsung ke Supir:</span>
+                    <span className="text-[#34C759] text-xs font-extrabold">{formatCurrency(paidNum)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block font-semibold text-[#1D1D1F] mb-1">Penyelesaian Selisih Totalan</label>
@@ -234,8 +270,8 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
                 onChange={(e) => setResolution(e.target.value as any)}
                 className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] font-medium text-[#1D1D1F]"
               >
-                <option value="RETURN_TO_COMPANY">Pengembalian Ke Perusahaan (Jika Advance Kelebihan)</option>
                 <option value="ADDITIONAL_PAYMENT">Pembayaran Kekurangan Ke Supir</option>
+                <option value="RETURN_TO_COMPANY">Pengembalian Ke Perusahaan (Jika Advance Kelebihan)</option>
                 <option value="OFFSET_TO_NEXT_TRIP">Potong Uang Jalan Trip Berikutnya</option>
                 <option value="OTHER">Lainnya</option>
               </select>

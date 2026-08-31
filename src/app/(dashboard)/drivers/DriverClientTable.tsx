@@ -40,6 +40,7 @@ interface DriverData {
   totalAdvances: number
   totalSettled: number
   outstandingBalance: number
+  currentSavingsBalance?: number
   licenseStatus: 'VALID' | 'EXPIRING_SOON' | 'EXPIRED'
   daysUntilExpiry: number | null
 }
@@ -78,6 +79,7 @@ export function DriverClientTable({ drivers, userRole }: DriverClientTableProps)
   const totalExpiring = drivers.filter((d) => d.licenseStatus === 'EXPIRING_SOON' || d.licenseStatus === 'EXPIRED').length
   const totalAllocation = drivers.reduce((acc, d) => acc + d.totalDriverAllocation, 0)
   const totalOutstanding = drivers.reduce((acc, d) => acc + d.outstandingBalance, 0)
+  const totalSavings = drivers.reduce((acc, d) => acc + (d.currentSavingsBalance || 0), 0)
 
   async function handleToggleStatus(driverId: string, currentStatus: string) {
     let nextStatus: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' = 'ACTIVE'
@@ -130,7 +132,7 @@ export function DriverClientTable({ drivers, userRole }: DriverClientTableProps)
             Direktori Pengemudi (Driver Management)
           </h2>
           <p className="text-xs text-[#6E6E73] font-medium mt-1">
-            Master data pengemudi, buku kas Uang Jalan, dan intelijen totalan supir
+            Master data pengemudi, simpanan supir, buku kas Uang Jalan, dan intelijen totalan supir
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -152,7 +154,7 @@ export function DriverClientTable({ drivers, userRole }: DriverClientTableProps)
       </div>
 
       {/* Header KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white border border-black/[0.06] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-[#6E6E73]">Pengemudi Aktif</span>
@@ -161,7 +163,7 @@ export function DriverClientTable({ drivers, userRole }: DriverClientTableProps)
             </div>
           </div>
           <p className="text-2xl font-semibold text-[#1D1D1F]">{totalActive} Personel</p>
-          <p className="text-[11px] text-[#6E6E73] mt-1">Total {drivers.length} registered drivers</p>
+          <p className="text-[11px] text-[#6E6E73] mt-1">Total {drivers.length} driver terdaftar</p>
         </div>
 
         <div className="bg-white border border-black/[0.06] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
@@ -172,7 +174,7 @@ export function DriverClientTable({ drivers, userRole }: DriverClientTableProps)
             </div>
           </div>
           <p className="text-2xl font-semibold text-[#FF9500]">{totalExpiring} Pengemudi</p>
-          <p className="text-[11px] text-[#6E6E73] mt-1">≤ 30 Hari atau Sudah Expired</p>
+          <p className="text-[11px] text-[#6E6E73] mt-1">≤ 30 Hari atau Expired</p>
         </div>
 
         <div className="bg-white border border-black/[0.06] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
@@ -195,6 +197,17 @@ export function DriverClientTable({ drivers, userRole }: DriverClientTableProps)
           </div>
           <p className="text-xl font-semibold text-[#5856D6]">{formatCurrency(totalOutstanding)}</p>
           <p className="text-[11px] text-[#6E6E73] mt-1">Alokasi minus Uang Jalan</p>
+        </div>
+
+        <div className="bg-white border border-[#007AFF]/20 bg-[#F0F7FF] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,122,255,0.06)]">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-[#007AFF]">Total Simpanan Supir</span>
+            <div className="w-8 h-8 rounded-xl bg-[#007AFF]/10 flex items-center justify-center text-[#007AFF]">
+              <User className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-xl font-bold text-[#007AFF]">{formatCurrency(totalSavings)}</p>
+          <p className="text-[11px] text-[#6E6E73] mt-1">Tabungan Terpal/Kecelakaan</p>
         </div>
       </div>
 
@@ -267,6 +280,7 @@ export function DriverClientTable({ drivers, userRole }: DriverClientTableProps)
                   <th className="py-3.5 px-4 text-center">Kontrak</th>
                   <th className="py-3.5 px-4 text-right">Total KM</th>
                   <th className="py-3.5 px-4 text-right">Alokasi Supir</th>
+                  <th className="py-3.5 px-4 text-right">Simpanan Supir</th>
                   <th className="py-3.5 px-4 text-right">Sisa Outstanding</th>
                   <th className="py-3.5 px-4 text-center">Aksi</th>
                 </tr>
@@ -346,6 +360,10 @@ export function DriverClientTable({ drivers, userRole }: DriverClientTableProps)
 
                     <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#007AFF]">
                       {formatCurrency(d.totalDriverAllocation)}
+                    </td>
+
+                    <td className="py-3.5 px-4 text-right font-mono font-bold text-[#007AFF]">
+                      {formatCurrency(d.currentSavingsBalance || 0)}
                     </td>
 
                     <td className="py-3.5 px-4 text-right font-mono font-semibold text-[#5856D6]">

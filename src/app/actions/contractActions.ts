@@ -566,11 +566,12 @@ export async function updateTripContractAction(input: UpdateTripContractInput) {
     afterValue: result.contract,
   })
 
-  revalidatePath(`/contracts/${input.contractId}`)
-  revalidatePath('/contracts')
-  revalidatePath('/dashboard')
-  revalidatePath('/reports/executive')
-  revalidatePath('/financials/bookkeeping')
+  revalidatePath(`/contracts/${input.contractId}`, 'page')
+  revalidatePath('/contracts', 'page')
+  revalidatePath('/dashboard', 'page')
+  revalidatePath('/reports/executive', 'page')
+  revalidatePath('/financials/bookkeeping', 'page')
+  revalidatePath('/drivers', 'page')
   return { success: true, contract: result.contract }
 }
 

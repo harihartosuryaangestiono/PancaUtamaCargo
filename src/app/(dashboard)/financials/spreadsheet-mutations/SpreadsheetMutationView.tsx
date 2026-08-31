@@ -97,7 +97,7 @@ export function SpreadsheetMutationView({
   const [loading, setLoading] = useState(false)
   const [csvContent, setCsvContent] = useState('')
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null)
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null) 
 
   // Manual create form
   const [manualForm, setManualForm] = useState({

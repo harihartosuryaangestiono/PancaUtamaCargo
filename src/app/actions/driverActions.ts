@@ -40,6 +40,8 @@ export interface SettleDriverInput {
   contractId: string
   driverId?: string
   driverName?: string
+  savingsAmount?: number
+  paidAmount?: number
   differenceResolution?: SettlementDifferenceResolution
   notes?: string
 }
@@ -177,6 +179,20 @@ export async function getDriversAction(params?: { query?: string; status?: strin
 
     const outstandingBalance = totalDriverAllocation - totalAdvances
 
+    // Simpanan Supir (Savings Balance)
+    let totalSavingsDeposit = d.ledgerEntries
+      .filter((le) => le.type === 'DRIVER_SAVINGS_DEPOSIT')
+      .reduce((acc, le) => acc + Number(le.amount || 0), 0)
+    if (totalSavingsDeposit === 0) {
+      totalSavingsDeposit = d.settlements.reduce((acc, s) => acc + Number(s.savingsAmount || 0), 0)
+    }
+
+    const totalSavingsWithdraw = d.ledgerEntries
+      .filter((le) => le.type === 'DRIVER_SAVINGS_WITHDRAW')
+      .reduce((acc, le) => acc + Number(le.amount || 0), 0)
+
+    const currentSavingsBalance = Math.max(0, totalSavingsDeposit - totalSavingsWithdraw)
+
     // License expiry calculation
     let licenseStatus: 'VALID' | 'EXPIRING_SOON' | 'EXPIRED' = 'VALID'
     let daysUntilExpiry: number | null = null
@@ -211,6 +227,7 @@ export async function getDriversAction(params?: { query?: string; status?: strin
       totalAdvances,
       totalSettled,
       outstandingBalance,
+      currentSavingsBalance,
       licenseStatus,
       daysUntilExpiry,
     }
@@ -321,6 +338,20 @@ export async function getDriverByIdAction(id: string) {
 
   const outstandingBalance = totalDriverAllocation - totalAdvances
 
+  // Driver Savings (Simpanan Supir) Calculations
+  let totalSavingsDeposit = driver.ledgerEntries
+    .filter((le) => le.type === 'DRIVER_SAVINGS_DEPOSIT')
+    .reduce((acc, le) => acc + Number(le.amount || 0), 0)
+  if (totalSavingsDeposit === 0) {
+    totalSavingsDeposit = driver.settlements.reduce((acc, s) => acc + Number(s.savingsAmount || 0), 0)
+  }
+
+  const totalSavingsWithdraw = driver.ledgerEntries
+    .filter((le) => le.type === 'DRIVER_SAVINGS_WITHDRAW')
+    .reduce((acc, le) => acc + Number(le.amount || 0), 0)
+
+  const currentSavingsBalance = Math.max(0, totalSavingsDeposit - totalSavingsWithdraw)
+
   // Safe Division Ratios
   const avgRevenuePerContract = totalContractsCount > 0 ? totalRevenue / totalContractsCount : null
   const avgRevenuePerKm = totalKm > 0 ? totalRevenue / totalKm : null
@@ -377,6 +408,8 @@ export async function getDriverByIdAction(id: string) {
     let title = 'Transaksi Kas Pengemudi'
     if (le.type === 'DRIVER_ADVANCE_GIVEN') title = 'Uang Jalan Diberikan'
     else if (le.type === 'DRIVER_SETTLEMENT_PAYMENT') title = 'Pembayaran Pelunasan Totalan'
+    else if (le.type === 'DRIVER_SAVINGS_DEPOSIT') title = 'Penyetoran Simpanan Supir'
+    else if (le.type === 'DRIVER_SAVINGS_WITHDRAW') title = 'Penarikan / Klaim Simpanan Supir'
     else if (le.type === 'DRIVER_REFUND') title = 'Pengembalian Kelebihan (Refund)'
     else if (le.type === 'DRIVER_OFFSET') title = 'Kompensasi Perjalanan Berikutnya (Offset)'
 
@@ -416,6 +449,9 @@ export async function getDriverByIdAction(id: string) {
         totalAdvances,
         totalSettled,
         outstandingBalance,
+        totalSavingsDeposit,
+        totalSavingsWithdraw,
+        currentSavingsBalance,
         avgRevenuePerContract,
         avgRevenuePerKm,
         avgAllocationPerTrip,
@@ -454,6 +490,8 @@ export async function getDriverByIdAction(id: string) {
         contractId: s.contractId,
         driverShare: Number(s.driverShare),
         advanceAmount: Number(s.advanceAmount),
+        paidAmount: Number(s.paidAmount || 0),
+        savingsAmount: Number(s.savingsAmount || 0),
         settlementDifference: Number(s.settlementDifference),
         resolution: s.differenceResolution,
         status: s.status,
@@ -755,6 +793,9 @@ export async function settleDriverLedgerAction(input: SettleDriverInput) {
         settlementStatus = 'SETTLED'
       }
 
+      const savings = input.savingsAmount !== undefined ? input.savingsAmount : 0
+      const paid = input.paidAmount !== undefined ? input.paidAmount : Math.max(0, settlementDifference - savings)
+
       // Create DriverSettlement record
       const settlement = await tx.driverSettlement.create({
         data: {
@@ -767,6 +808,8 @@ export async function settleDriverLedgerAction(input: SettleDriverInput) {
           finalDriverAmount: totalDriverAllocation,
           amountAlreadyPaid: totalAdvancesGiven,
           remainingAmount: settlementDifference > 0 ? settlementDifference : 0,
+          paidAmount: paid,
+          savingsAmount: savings,
           settlementDifference,
           differenceResolution: resolution,
           status: settlementStatus,
@@ -795,22 +838,38 @@ export async function settleDriverLedgerAction(input: SettleDriverInput) {
 
       // Create DriverLedgerEntry if driverId is present
       if (driverId) {
-        let ledgerType: DriverLedgerType = 'DRIVER_SETTLEMENT_PAYMENT'
-        if (resolution === 'RETURN_TO_COMPANY') ledgerType = 'DRIVER_REFUND'
-        else if (resolution === 'OFFSET_TO_NEXT_TRIP') ledgerType = 'DRIVER_OFFSET'
-        else if (resolution === 'ADDITIONAL_PAYMENT') ledgerType = 'DRIVER_SETTLEMENT_PAYMENT'
+        if (savings > 0) {
+          await tx.driverLedgerEntry.create({
+            data: {
+              driverId,
+              contractId: contract.id,
+              type: 'DRIVER_SAVINGS_DEPOSIT',
+              amount: savings,
+              date: new Date(),
+              notes: `Penyetoran Simpanan Supir dari Totalan Kontrak ${contract.contractNumber}`,
+              createdById: validUserId,
+            },
+          })
+        }
 
-        await tx.driverLedgerEntry.create({
-          data: {
-            driverId,
-            contractId: contract.id,
-            type: ledgerType,
-            amount: Math.abs(settlementDifference),
-            date: new Date(),
-            notes: `Totalan Supir Kontrak ${contract.contractNumber} (${resolution})`,
-            createdById: validUserId,
-          },
-        })
+        if (paid > 0 || savings === 0) {
+          let ledgerType: DriverLedgerType = 'DRIVER_SETTLEMENT_PAYMENT'
+          if (resolution === 'RETURN_TO_COMPANY') ledgerType = 'DRIVER_REFUND'
+          else if (resolution === 'OFFSET_TO_NEXT_TRIP') ledgerType = 'DRIVER_OFFSET'
+          else if (resolution === 'ADDITIONAL_PAYMENT') ledgerType = 'DRIVER_SETTLEMENT_PAYMENT'
+
+          await tx.driverLedgerEntry.create({
+            data: {
+              driverId,
+              contractId: contract.id,
+              type: ledgerType,
+              amount: paid > 0 ? paid : Math.abs(settlementDifference),
+              date: new Date(),
+              notes: `Totalan Supir Kontrak ${contract.contractNumber} (${resolution})`,
+              createdById: validUserId,
+            },
+          })
+        }
       }
 
       // Create AuditLog
@@ -839,6 +898,145 @@ export async function settleDriverLedgerAction(input: SettleDriverInput) {
     return { success: true, settlement: result }
   } catch (err: any) {
     return { error: err.message || 'Gagal merekosiliasi Totalan Supir.' }
+  }
+}
+
+export interface WithdrawDriverSavingsInput {
+  driverId: string
+  amount: number
+  notes?: string
+}
+
+export async function withdrawDriverSavingsAction(input: WithdrawDriverSavingsInput) {
+  const session = await requireFinanceOrOwner()
+
+  if (!input.driverId) {
+    return { error: 'ID Pengemudi wajib diisi.' }
+  }
+  if (!input.amount || input.amount <= 0) {
+    return { error: 'Nominal penarikan/klaim harus lebih besar dari 0.' }
+  }
+
+  try {
+    const entry = await prisma.$transaction(async (tx) => {
+      const driver = await tx.driver.findUnique({ where: { id: input.driverId } })
+      if (!driver) throw new Error('Pengemudi tidak ditemukan.')
+
+      const user = await tx.user.findFirst({
+        where: {
+          OR: [
+            { id: session.userId },
+            ...(session.email ? [{ email: session.email }] : []),
+            ...(session.role ? [{ role: session.role }] : []),
+          ],
+        },
+      })
+      const fallbackUser = await tx.user.findFirst({ where: { role: 'OWNER' } })
+      const validUserId = user?.id || fallbackUser?.id || session.userId
+
+      const ledger = await tx.driverLedgerEntry.create({
+        data: {
+          driverId: input.driverId,
+          type: 'DRIVER_SAVINGS_WITHDRAW',
+          amount: input.amount,
+          date: new Date(),
+          notes: input.notes?.trim() || 'Klaim / Penarikan Simpanan Supir (Terpal/Kecelakaan)',
+          createdById: validUserId,
+        },
+      })
+
+      if (validUserId) {
+        await tx.auditLog.create({
+          data: {
+            userId: validUserId,
+            userName: user?.name || session.name,
+            role: user?.role || session.role,
+            action: 'DRIVER_SAVINGS_WITHDRAW',
+            module: 'DRIVER',
+            recordId: ledger.id,
+            afterValue: JSON.stringify(ledger),
+          },
+        })
+      }
+
+      return ledger
+    })
+
+    revalidatePath('/drivers')
+    revalidatePath(`/drivers/${input.driverId}`)
+
+  } catch (err: any) {
+    return { error: err.message || 'Gagal mencatat penarikan simpanan supir.' }
+  }
+}
+
+export interface DepositDriverSavingsInput {
+  driverId: string
+  amount: number
+  notes?: string
+}
+
+export async function depositDriverSavingsAction(input: DepositDriverSavingsInput) {
+  const session = await requireFinanceOrOwner()
+
+  if (!input.driverId) {
+    return { error: 'ID Pengemudi wajib diisi.' }
+  }
+  if (!input.amount || input.amount <= 0) {
+    return { error: 'Nominal simpanan harus lebih besar dari 0.' }
+  }
+
+  try {
+    const entry = await prisma.$transaction(async (tx) => {
+      const driver = await tx.driver.findUnique({ where: { id: input.driverId } })
+      if (!driver) throw new Error('Pengemudi tidak ditemukan.')
+
+      const user = await tx.user.findFirst({
+        where: {
+          OR: [
+            { id: session.userId },
+            ...(session.email ? [{ email: session.email }] : []),
+            ...(session.role ? [{ role: session.role }] : []),
+          ],
+        },
+      })
+      const fallbackUser = await tx.user.findFirst({ where: { role: 'OWNER' } })
+      const validUserId = user?.id || fallbackUser?.id || session.userId
+
+      const ledger = await tx.driverLedgerEntry.create({
+        data: {
+          driverId: input.driverId,
+          type: 'DRIVER_SAVINGS_DEPOSIT',
+          amount: input.amount,
+          date: new Date(),
+          notes: input.notes?.trim() || 'Set Saldo Awal / Top Up Simpanan Supir Manual',
+          createdById: validUserId,
+        },
+      })
+
+      if (validUserId) {
+        await tx.auditLog.create({
+          data: {
+            userId: validUserId,
+            userName: user?.name || session.name,
+            role: user?.role || session.role,
+            action: 'DRIVER_SAVINGS_DEPOSIT',
+            module: 'DRIVER',
+            recordId: ledger.id,
+            afterValue: JSON.stringify(ledger),
+          },
+        })
+      }
+
+      return ledger
+    })
+
+    revalidatePath('/drivers', 'page')
+    revalidatePath(`/drivers/${input.driverId}`, 'page')
+
+    return { success: true, ledgerEntry: entry }
+  } catch (err: any) {
+    return { error: err.message || 'Gagal menambahkan simpanan supir.' }
   }
 }
 

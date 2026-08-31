@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatCurrency, formatKm } from '@/lib/utils/format'
+import { withdrawDriverSavingsAction, depositDriverSavingsAction } from '@/app/actions/driverActions'
 import {
   User,
   AlertTriangle,
@@ -14,6 +16,9 @@ import {
   DollarSign,
   Activity,
   Layers,
+  Shield,
+  PiggyBank,
+  PlusCircle,
 } from 'lucide-react'
 
 interface DriverDetailProps {
@@ -39,6 +44,9 @@ interface DriverDetailProps {
       totalAdvances: number
       totalSettled: number
       outstandingBalance: number
+      totalSavingsDeposit?: number
+      totalSavingsWithdraw?: number
+      currentSavingsBalance?: number
       avgRevenuePerContract: number | null
       avgRevenuePerKm: number | null
       avgAllocationPerTrip: number | null
@@ -89,6 +97,8 @@ interface DriverDetailProps {
       contractId: string
       driverShare: number
       advanceAmount: number
+      paidAmount?: number
+      savingsAmount?: number
       settlementDifference: number
       resolution: string | null
       status: string
@@ -116,11 +126,92 @@ interface DriverDetailProps {
 }
 
 export function DriverDetailClient({ driver }: DriverDetailProps) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<
-    'OVERVIEW' | 'CONTRACTS' | 'ERP_TRIPS' | 'ADVANCES' | 'SETTLEMENTS' | 'PERFORMANCE' | 'ACTIVITY'
+    'OVERVIEW' | 'CONTRACTS' | 'ERP_TRIPS' | 'ADVANCES' | 'SETTLEMENTS' | 'SAVINGS' | 'PERFORMANCE' | 'ACTIVITY'
   >('OVERVIEW')
 
+  const [isSavingsWithdrawModalOpen, setIsSavingsWithdrawModalOpen] = useState(false)
+  const [withdrawAmount, setWithdrawAmount] = useState('')
+  const [withdrawNotes, setWithdrawNotes] = useState('')
+  const [withdrawLoading, setWithdrawLoading] = useState(false)
+  const [withdrawError, setWithdrawError] = useState<string | null>(null)
+
+  const [isSavingsDepositModalOpen, setIsSavingsDepositModalOpen] = useState(false)
+  const [depositAmount, setDepositAmount] = useState('')
+  const [depositNotes, setDepositNotes] = useState('')
+  const [depositLoading, setDepositLoading] = useState(false)
+  const [depositError, setDepositError] = useState<string | null>(null)
+
   const { metrics } = driver
+
+  async function handleDepositSavings() {
+    try {
+      setDepositLoading(true)
+      setDepositError(null)
+
+      const amount = Number(depositAmount)
+      if (!amount || amount <= 0) {
+        setDepositError('Nominal simpanan harus lebih besar dari 0.')
+        return
+      }
+
+      const res = await depositDriverSavingsAction({
+        driverId: driver.id,
+        amount,
+        notes: depositNotes || 'Set Saldo Awal / Deposit Simpanan Supir Manual',
+      })
+
+      if (res?.error) {
+        setDepositError(res.error)
+        return
+      }
+
+      setIsSavingsDepositModalOpen(false)
+      setDepositAmount('')
+      setDepositNotes('')
+      router.refresh()
+      window.location.reload()
+    } catch (err: any) {
+      setDepositError(err.message || 'Gagal menambahkan simpanan supir.')
+    } finally {
+      setDepositLoading(false)
+    }
+  }
+
+  async function handleWithdrawSavings() {
+    try {
+      setWithdrawLoading(true)
+      setWithdrawError(null)
+
+      const amount = Number(withdrawAmount)
+      if (!amount || amount <= 0) {
+        setWithdrawError('Nominal penarikan harus lebih besar dari 0.')
+        return
+      }
+
+      const res = await withdrawDriverSavingsAction({
+        driverId: driver.id,
+        amount,
+        notes: withdrawNotes,
+      })
+
+      if (res?.error) {
+        setWithdrawError(res.error)
+        return
+      }
+
+      setIsSavingsWithdrawModalOpen(false)
+      setWithdrawAmount('')
+      setWithdrawNotes('')
+      router.refresh()
+      window.location.reload()
+    } catch (err: any) {
+      setWithdrawError(err.message || 'Gagal memproses penarikan simpanan.')
+    } finally {
+      setWithdrawLoading(false)
+    }
+  }
 
   return (
     <div className="space-y-6 text-[#1D1D1F]">
@@ -183,7 +274,7 @@ export function DriverDetailClient({ driver }: DriverDetailProps) {
       )}
 
       {/* Executive Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <div className="bg-white border border-black/[0.06] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
           <span className="text-xs font-medium text-[#6E6E73]">Total Jarak Tempuh</span>
           <p className="text-xl font-bold text-[#1D1D1F] mt-1">{formatKm(metrics.totalKm)}</p>
@@ -207,6 +298,12 @@ export function DriverDetailClient({ driver }: DriverDetailProps) {
           <p className="text-xl font-bold text-[#5856D6] mt-1">{formatCurrency(metrics.outstandingBalance)}</p>
           <p className="text-[11px] text-[#6E6E73] mt-0.5">Alokasi - Uang Jalan</p>
         </div>
+
+        <div className="bg-white border border-[#007AFF]/20 bg-[#F0F7FF] rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,122,255,0.06)]">
+          <span className="text-xs font-semibold text-[#007AFF]">Simpanan Supir (Tabungan)</span>
+          <p className="text-xl font-bold text-[#007AFF] mt-1">{formatCurrency(metrics.currentSavingsBalance || 0)}</p>
+          <p className="text-[11px] text-[#6E6E73] mt-0.5">Cadangan Kecelakaan/Terpal</p>
+        </div>
       </div>
 
       {/* Workspace Tabs */}
@@ -220,6 +317,17 @@ export function DriverDetailClient({ driver }: DriverDetailProps) {
           }`}
         >
           <User className="w-3.5 h-3.5 text-[#007AFF]" /> Overview Profile
+        </button>
+
+        <button
+          onClick={() => setActiveTab('SAVINGS')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+            activeTab === 'SAVINGS'
+              ? 'bg-white text-[#1D1D1F] shadow-xs border border-black/[0.06]'
+              : 'text-[#6E6E73] hover:text-[#1D1D1F]'
+          }`}
+        >
+          <PiggyBank className="w-3.5 h-3.5 text-[#007AFF]" /> Simpanan &amp; Tabungan ({formatCurrency(metrics.currentSavingsBalance || 0)})
         </button>
 
         <button
@@ -527,7 +635,123 @@ export function DriverDetailClient({ driver }: DriverDetailProps) {
         </div>
       )}
 
-      {/* TAB 5: SETTLEMENTS */}
+      {/* TAB 5: SAVINGS */}
+      {activeTab === 'SAVINGS' && (
+        <div className="space-y-6">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div className="p-5 rounded-2xl bg-white border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+              <span className="text-[#6E6E73] font-medium block">Total Simpanan Terkumpul</span>
+              <span className="text-xl font-bold text-[#007AFF] mt-1 block">
+                {formatCurrency(metrics.totalSavingsDeposit || 0)}
+              </span>
+              <p className="text-[11px] text-[#6E6E73] mt-1">Hasil Alokasi Pelunasan Totalan</p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+              <span className="text-[#6E6E73] font-medium block">Total Simpanan Terpakai / Klaim</span>
+              <span className="text-xl font-bold text-[#FF9500] mt-1 block">
+                {formatCurrency(metrics.totalSavingsWithdraw || 0)}
+              </span>
+              <p className="text-[11px] text-[#6E6E73] mt-1">Klaim Terpal/Kecelakaan</p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex flex-col justify-between">
+              <div>
+                <span className="text-[#6E6E73] font-medium block">Saldo Simpanan Supir Saat Ini</span>
+                <span className="text-xl font-bold text-[#34C759] mt-1 block">
+                  {formatCurrency(metrics.currentSavingsBalance || 0)}
+                </span>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                <button
+                  onClick={() => setIsSavingsDepositModalOpen(true)}
+                  className="flex-1 py-2 px-2.5 rounded-xl bg-[#34C759] hover:bg-[#248A3D] text-white font-semibold text-[11px] transition-colors flex items-center justify-center gap-1 shadow-2xs"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" /> Set Saldo Awal / Tambah
+                </button>
+                <button
+                  onClick={() => setIsSavingsWithdrawModalOpen(true)}
+                  className="flex-1 py-2 px-2.5 rounded-xl bg-[#FF9500] hover:bg-[#E08200] text-white font-semibold text-[11px] transition-colors flex items-center justify-center gap-1 shadow-2xs"
+                >
+                  <PiggyBank className="w-3.5 h-3.5" /> Tarik / Gunakan
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Ledger Entries Table */}
+          <div className="bg-white border border-black/[0.06] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+            <div className="p-4 border-b border-black/[0.06] flex items-center justify-between">
+              <h4 className="text-xs font-bold text-[#1D1D1F] uppercase tracking-wider">
+                Mutasi Buku Besar Simpanan Supir
+              </h4>
+            </div>
+            {driver.ledgerEntries.filter(
+              (le) => le.type === 'DRIVER_SAVINGS_DEPOSIT' || le.type === 'DRIVER_SAVINGS_WITHDRAW'
+            ).length === 0 ? (
+              <div className="p-8 text-center text-xs text-[#6E6E73]">
+                Belum ada riwayat mutasi simpanan supir.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="bg-[#FAFAFA] border-b border-black/[0.06] text-[#6E6E73] font-semibold uppercase">
+                      <th className="py-3 px-4">Tanggal</th>
+                      <th className="py-3 px-4">Jenis Transaksi</th>
+                      <th className="py-3 px-4">Keterangan / Ref</th>
+                      <th className="py-3 px-4 text-right">Nominal</th>
+                      <th className="py-3 px-4">Petugas</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black/[0.06] font-medium">
+                    {driver.ledgerEntries
+                      .filter(
+                        (le) => le.type === 'DRIVER_SAVINGS_DEPOSIT' || le.type === 'DRIVER_SAVINGS_WITHDRAW'
+                      )
+                      .map((le) => (
+                        <tr key={le.id} className="hover:bg-[#F5F5F7]">
+                          <td className="py-3 px-4 text-[#6E6E73]">
+                            {new Date(le.date).toLocaleDateString('id-ID')}
+                          </td>
+                          <td className="py-3 px-4">
+                            {le.type === 'DRIVER_SAVINGS_DEPOSIT' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#34C759]/10 text-[#248A3D]">
+                                DEPOSIT SIMPANAN
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FF9500]/10 text-[#FF9500]">
+                                PENARIKAN / KLAIM
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-[#1D1D1F]">
+                            {le.notes || '-'}
+                            {le.contractNumber && (
+                              <span className="text-[#007AFF] ml-1">({le.contractNumber})</span>
+                            )}
+                          </td>
+                          <td
+                            className={`py-3 px-4 text-right font-mono font-bold ${
+                              le.type === 'DRIVER_SAVINGS_DEPOSIT' ? 'text-[#34C759]' : 'text-[#FF3B30]'
+                            }`}
+                          >
+                            {le.type === 'DRIVER_SAVINGS_DEPOSIT' ? '+' : '-'}
+                            {formatCurrency(le.amount)}
+                          </td>
+                          <td className="py-3 px-4 text-[#6E6E73]">{le.createdByName}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: SETTLEMENTS */}
       {activeTab === 'SETTLEMENTS' && (
         <div className="bg-white border border-black/[0.06] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
           {driver.settlements.length === 0 ? (
@@ -541,7 +765,8 @@ export function DriverDetailClient({ driver }: DriverDetailProps) {
                     <th className="py-3 px-4">Tanggal Totalan</th>
                     <th className="py-3 px-4 text-right">Alokasi Supir</th>
                     <th className="py-3 px-4 text-right">Total Uang Jalan</th>
-                    <th className="py-3 px-4 text-right">Selisih Totalan</th>
+                    <th className="py-3 px-4 text-right">Simpanan Supir</th>
+                    <th className="py-3 px-4 text-right">Dibayar Tunai</th>
                     <th className="py-3 px-4 text-center">Resolusi</th>
                   </tr>
                 </thead>
@@ -560,14 +785,11 @@ export function DriverDetailClient({ driver }: DriverDetailProps) {
                       <td className="py-3 px-4 text-right font-mono font-semibold text-[#1D1D1F]">
                         {formatCurrency(s.advanceAmount)}
                       </td>
-                      <td
-                        className={`py-3 px-4 text-right font-mono font-bold ${
-                          s.settlementDifference >= 0
-                            ? 'text-[#34C759]'
-                            : 'text-[#FF9500]'
-                        }`}
-                      >
-                        {formatCurrency(s.settlementDifference)}
+                      <td className="py-3 px-4 text-right font-mono font-semibold text-[#007AFF]">
+                        {formatCurrency(s.savingsAmount || 0)}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-[#34C759]">
+                        {formatCurrency(s.paidAmount || 0)}
                       </td>
                       <td className="py-3 px-4 text-center">
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#F2F2F7] text-[#1D1D1F]">
@@ -583,7 +805,7 @@ export function DriverDetailClient({ driver }: DriverDetailProps) {
         </div>
       )}
 
-      {/* TAB 6: PERFORMANCE */}
+      {/* TAB 7: PERFORMANCE */}
       {activeTab === 'PERFORMANCE' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-white border border-black/[0.06] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
@@ -624,7 +846,7 @@ export function DriverDetailClient({ driver }: DriverDetailProps) {
         </div>
       )}
 
-      {/* TAB 7: ACTIVITY */}
+      {/* TAB 8: ACTIVITY */}
       {activeTab === 'ACTIVITY' && (
         <div className="bg-white border border-black/[0.06] rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
           {driver.activityStream.length === 0 ? (
@@ -650,6 +872,108 @@ export function DriverDetailClient({ driver }: DriverDetailProps) {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Withdraw Savings Modal */}
+      {isSavingsWithdrawModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-black/[0.08] shadow-2xl space-y-4 text-xs">
+            <h3 className="text-base font-semibold text-[#1D1D1F]">Catat Tarik / Gunakan Simpanan Supir</h3>
+            <p className="text-xs text-[#6E6E73]">
+              Gunakan fitur ini saat ada pengeluaran klaim kecelakaan, terpal rusak/hilang, atau pencairan simpanan untuk {driver.name}.
+            </p>
+            {withdrawError && <p className="text-xs text-[#FF3B30] font-semibold">{withdrawError}</p>}
+            
+            <div>
+              <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">Nominal Penarikan / Klaim (Rp)</label>
+              <input
+                type="number"
+                value={withdrawAmount}
+                onChange={(e) => setWithdrawAmount(e.target.value)}
+                placeholder="misal: 150000"
+                className="w-full px-3.5 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-xs font-bold text-[#1D1D1F]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">Keterangan / Alasan Klaim</label>
+              <textarea
+                value={withdrawNotes}
+                onChange={(e) => setWithdrawNotes(e.target.value)}
+                placeholder="misal: Ganti terpal rusak saat perjalanan Semarang - Jakarta"
+                rows={3}
+                className="w-full px-3.5 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-xs font-medium text-[#1D1D1F]"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setIsSavingsWithdrawModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#F5F5F7] text-[#1D1D1F]"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleWithdrawSavings}
+                disabled={withdrawLoading}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#007AFF] text-white"
+              >
+                {withdrawLoading ? 'Simpan...' : 'Simpan Penarikan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deposit / Set Saldo Awal Simpanan Modal */}
+      {isSavingsDepositModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-black/[0.08] shadow-2xl space-y-4 text-xs">
+            <h3 className="text-base font-semibold text-[#1D1D1F]">Set Saldo Awal / Deposit Simpanan Supir</h3>
+            <p className="text-xs text-[#6E6E73]">
+              Masukkan nominal modal simpanan awal atau deposit manual untuk {driver.name}.
+            </p>
+            {depositError && <p className="text-xs text-[#FF3B30] font-semibold">{depositError}</p>}
+            
+            <div>
+              <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">Nominal Simpanan (Rp)</label>
+              <input
+                type="number"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                placeholder="misal: 500000"
+                className="w-full px-3.5 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-xs font-bold text-[#34C759]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#1D1D1F] mb-1">Keterangan / Catatan</label>
+              <textarea
+                value={depositNotes}
+                onChange={(e) => setDepositNotes(e.target.value)}
+                placeholder="misal: Saldo tabungan supir dari pembukuan terdahulu"
+                rows={3}
+                className="w-full px-3.5 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-xs font-medium text-[#1D1D1F]"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setIsSavingsDepositModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#F5F5F7] text-[#1D1D1F]"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDepositSavings}
+                disabled={depositLoading}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#34C759] text-white"
+              >
+                {depositLoading ? 'Menyimpan...' : 'Simpan Deposit'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
