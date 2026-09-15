@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Building2,
   FileSpreadsheet,
+  Receipt,
   X,
 } from 'lucide-react'
 
@@ -95,6 +96,12 @@ export function Sidebar({ userRole, userName, isOpenMobile = false, onCloseMobil
           label: 'Pembukuan Keuangan',
           href: '/financials',
           icon: DollarSign,
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
+        },
+        {
+          label: 'Piutang Pelanggan',
+          href: '/financials/piutang',
+          icon: Receipt,
           roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {

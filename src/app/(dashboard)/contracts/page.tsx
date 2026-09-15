@@ -39,6 +39,16 @@ export default async function ContractsPage() {
     }
   }
 
+  const getPaymentBadge = (paymentStatus: string, remainingPiutang: number) => {
+    if (paymentStatus === 'PAID' || remainingPiutang <= 0) {
+      return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#34C759]/10 text-[#248A3D] border border-[#34C759]/20 uppercase">LUNAS</span>
+    }
+    if (paymentStatus === 'PARTIAL') {
+      return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#007AFF]/10 text-[#007AFF] border border-[#007AFF]/20 uppercase">SEBAGIAN</span>
+    }
+    return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FF3B30]/10 text-[#FF3B30] border border-[#FF3B30]/20 uppercase">PIUTANG</span>
+  }
+
   return (
     <div className="space-y-6 text-[#1D1D1F]">
       {/* Header */}
@@ -115,6 +125,7 @@ export default async function ContractsPage() {
 
                   <div className="flex flex-wrap items-center gap-2">
                     {getStatusBadge(c.status)}
+                    {getPaymentBadge(c.paymentStatus, c.remainingPiutang)}
                     {session.role === 'OWNER' && (
                       <EditContractCostsModal
                         contract={c}

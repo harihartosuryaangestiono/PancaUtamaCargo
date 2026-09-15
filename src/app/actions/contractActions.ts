@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { requireOwner, requireAuth } from '@/lib/session'
+import { requireOwner, requireAuth, requireFinanceOrOwner } from '@/lib/session'
 import { createAuditLog } from '@/lib/services/auditService'
 import { syncShipmentTires } from '@/lib/services/tireService'
 import { revalidatePath } from 'next/cache'
@@ -210,6 +210,7 @@ export async function getContractsAction(params?: { status?: string; search?: st
       },
       advances: true,
       settlements: true,
+      financialTransactions: { orderBy: { date: 'desc' } },
     },
     orderBy: { createdAt: 'desc' },
   })
@@ -241,6 +242,9 @@ export async function getContractsAction(params?: { status?: string; search?: st
     }
 
     const settlementDiff = totalDriverEntitlement - totalAdvance
+    const paidAmount = Number(c.paidAmount || 0)
+    const remainingPiutang = Math.max(0, totalRevenue - paidAmount)
+    const paymentStatus = c.paymentStatus || (paidAmount >= totalRevenue && totalRevenue > 0 ? 'PAID' : (paidAmount > 0 ? 'PARTIAL' : 'UNPAID'))
 
     return JSON.parse(
       JSON.stringify({
@@ -256,6 +260,9 @@ export async function getContractsAction(params?: { status?: string; search?: st
         totalDriverEntitlement,
         totalAdvance,
         settlementDiff,
+        paidAmount,
+        remainingPiutang,
+        paymentStatus,
       })
     )
   })
@@ -277,6 +284,10 @@ export async function getContractByIdAction(contractId: string) {
       advances: { orderBy: { givenAt: 'desc' } },
       settlements: { orderBy: { settlementDate: 'desc' } },
       fuelLogs: true,
+      financialTransactions: {
+        include: { createdBy: { select: { id: true, name: true, email: true } } },
+        orderBy: { date: 'desc' },
+      },
     },
   })
 
@@ -322,6 +333,9 @@ export async function getContractByIdAction(contractId: string) {
 
   // Settlement Difference = Total Driver Entitlement - Total Advances Given
   const settlementDiff = totalDriverEntitlement - totalAdvance
+  const paidAmount = Number(c.paidAmount || 0)
+  const remainingPiutang = Math.max(0, totalRevenue - paidAmount)
+  const paymentStatus = c.paymentStatus || (paidAmount >= totalRevenue && totalRevenue > 0 ? 'PAID' : (paidAmount > 0 ? 'PARTIAL' : 'UNPAID'))
 
   return JSON.parse(
     JSON.stringify({
@@ -342,6 +356,9 @@ export async function getContractByIdAction(contractId: string) {
       netCompanyContribution,
       totalAdvance,
       settlementDiff,
+      paidAmount,
+      remainingPiutang,
+      paymentStatus,
     })
   )
 }
@@ -574,4 +591,108 @@ export async function updateTripContractAction(input: UpdateTripContractInput) {
   revalidatePath('/drivers', 'page')
   return { success: true, contract: result.contract }
 }
+
+export interface RecordContractPaymentInput {
+  contractId: string
+  amount: number
+  paymentDate: string
+  paymentMethod?: string
+  referenceNumber?: string
+  notes?: string
+}
+
+export async function recordContractPaymentAction(input: RecordContractPaymentInput) {
+  const user = await requireFinanceOrOwner()
+
+  const amount = Number(input.amount)
+  if (isNaN(amount) || amount <= 0) {
+    return { error: 'Nominal pembayaran harus lebih besar dari 0.' }
+  }
+
+  const contract = await prisma.tripContract.findUnique({
+    where: { id: input.contractId },
+    include: {
+      customer: true,
+      legs: true,
+    },
+  })
+
+  if (!contract) {
+    return { error: 'Kontrak tidak ditemukan.' }
+  }
+
+  let totalRevenue = 0
+  for (const leg of contract.legs) {
+    if (leg.contractValue) totalRevenue += Number(leg.contractValue)
+  }
+
+  // Find or create income category for Ongkos Angkut / Sewa Truk
+  let incomeCategory = await prisma.incomeCategory.findFirst({
+    where: { name: { contains: 'Ongkos Angkut', mode: 'insensitive' } },
+  })
+  if (!incomeCategory) {
+    incomeCategory = await prisma.incomeCategory.findFirst()
+  }
+  if (!incomeCategory) {
+    incomeCategory = await prisma.incomeCategory.create({
+      data: {
+        name: 'Ongkos Angkut / Sewa Truk',
+        description: 'Pendapatan dari kontrak angkutan armada',
+      },
+    })
+  }
+
+  const transactionNumber = `TRX-INC-${Date.now().toString().slice(-6)}`
+
+  const currentPaid = Number(contract.paidAmount || 0)
+  const newPaidAmount = currentPaid + amount
+  const newPaymentStatus = newPaidAmount >= totalRevenue ? 'PAID' : (newPaidAmount > 0 ? 'PARTIAL' : 'UNPAID')
+
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Create FinancialTransaction
+    const trx = await tx.financialTransaction.create({
+      data: {
+        transactionNumber,
+        type: 'INCOME',
+        date: new Date(input.paymentDate || Date.now()),
+        incomeCategoryId: incomeCategory.id,
+        description: `Pembayaran Kontrak ${contract.contractNumber} (${contract.customer.name})`,
+        customerId: contract.customerId,
+        contractId: contract.id,
+        amount: amount,
+        paymentMethod: (input.paymentMethod as any) || 'TRANSFER',
+        referenceNumber: input.referenceNumber || null,
+        notes: input.notes || null,
+        createdById: user.userId,
+      },
+    })
+
+    // 2. Update TripContract payment status & paidAmount
+    const updatedContract = await tx.tripContract.update({
+      where: { id: contract.id },
+      data: {
+        paidAmount: newPaidAmount,
+        paymentStatus: newPaymentStatus,
+      },
+    })
+
+    return { trx, updatedContract }
+  })
+
+  await createAuditLog({
+    action: 'RECORD_CONTRACT_PAYMENT',
+    module: 'FINANCE',
+    recordId: contract.id,
+    afterValue: { amount, newPaidAmount, newPaymentStatus },
+  })
+
+  revalidatePath(`/contracts/${input.contractId}`)
+  revalidatePath('/contracts')
+  revalidatePath('/financials')
+  revalidatePath('/financials/piutang')
+  revalidatePath('/dashboard')
+
+  return { success: true, transaction: result.trx, contract: result.updatedContract }
+}
+
 

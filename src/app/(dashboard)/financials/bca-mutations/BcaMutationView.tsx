@@ -29,6 +29,8 @@ import {
   deleteBcaMutationAction,
   clearAllBcaMutationsAction,
 } from '@/app/actions/bcaMutationActions'
+import { PostBcaToBookkeepingModal } from './PostBcaToBookkeepingModal'
+import { ArrowUpRight } from 'lucide-react'
 
 
 
@@ -44,6 +46,9 @@ interface BcaMutationItem {
   amount: number
   type: string
   balance: number
+  isPosted?: boolean
+  postedTrxId?: string | null
+  postedTrx?: any
   createdAt: Date
 }
 
@@ -61,14 +66,29 @@ interface BcaSummary {
 interface BcaMutationViewProps {
   initialMutations: BcaMutationItem[]
   initialSummary: BcaSummary
+  incomeCategories?: Array<{ id: string; name: string }>
+  expenseCategories?: Array<{ id: string; name: string }>
+  customers?: Array<{ id: string; name: string }>
+  contracts?: Array<{ id: string; contractNumber: string; customerId: string; remainingPiutang: number; customer?: { name: string } }>
+  trucks?: Array<{ id: string; policeNumber: string; brand: string; model: string }>
 }
 
-export function BcaMutationView({ initialMutations, initialSummary }: BcaMutationViewProps) {
+export function BcaMutationView({
+  initialMutations,
+  initialSummary,
+  incomeCategories = [],
+  expenseCategories = [],
+  customers = [],
+  contracts = [],
+  trucks = [],
+}: BcaMutationViewProps) {
   const [mutations, setMutations] = useState<BcaMutationItem[]>(initialMutations)
   const [summary, setSummary] = useState<BcaSummary>(initialSummary)
   const [searchQuery, setSearchQuery] = useState('')
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [selectedMutationForPost, setSelectedMutationForPost] = useState<BcaMutationItem | null>(null)
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [csvContent, setCsvContent] = useState('')
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -503,6 +523,7 @@ export function BcaMutationView({ initialMutations, initialSummary }: BcaMutatio
                 <th className="py-3 px-4 w-40 text-right border-r border-black/[0.06]">Amount</th>
                 <th className="py-3 px-4 w-20 text-center border-r border-black/[0.06]">Type</th>
                 <th className="py-3 px-4 w-44 text-right border-r border-black/[0.06]">Balance</th>
+                <th className="py-3 px-4 w-40 text-center border-r border-black/[0.06]">Posting Pembukuan</th>
                 <th className="py-3 px-4 w-12 text-center">Aksi</th>
               </tr>
             </thead>
@@ -563,6 +584,28 @@ export function BcaMutationView({ initialMutations, initialSummary }: BcaMutatio
                     {/* Balance */}
                     <td className="py-2.5 px-4 text-right font-bold text-[#1D1D1F] border-r border-black/[0.06]">
                       {row.balance.toFixed(2)}
+                    </td>
+
+                    {/* Posting Status & Action */}
+                    <td className="py-2.5 px-4 text-center font-sans border-r border-black/[0.06]">
+                      {row.isPosted ? (
+                        <span
+                          className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#34C759]/10 text-[#248A3D] border border-[#34C759]/20 inline-flex items-center gap-1 cursor-default"
+                          title={`Terposting (${row.postedTrx?.transactionNumber || 'Pembukuan'})`}
+                        >
+                          <CheckCircle2 className="w-3 h-3 text-[#34C759]" /> TERPOSTING
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedMutationForPost(row)
+                            setIsPostModalOpen(true)
+                          }}
+                          className="px-2.5 py-1 rounded-xl bg-[#007AFF] hover:bg-[#0062CC] text-white text-[10px] font-bold transition-all inline-flex items-center gap-1 shadow-2xs"
+                        >
+                          <ArrowUpRight className="w-3 h-3" /> Posting
+                        </button>
+                      )}
                     </td>
 
                     {/* Delete Action */}
@@ -713,7 +756,7 @@ Name,=,HARIHARTO SURYA AN
 Currency,=,IDR
 
 Date,Description,Branch,Amount,,Balance
-'05/08/2026,"BI-FAST CR TRANSFER DR 023 RACHMAT SENDJAJA",'0000,500000.00,CR,500000.00`}
+'05/08/2026,"BI-FAST CR TRANSFER DR 023 RACHMAT SENDJAJA",'0000,500000.00,CR,500000.0`}
                     className="w-full p-3 text-xs font-mono bg-[#F5F5F7] border border-black/[0.08] rounded-xl outline-none focus:border-[#007AFF]"
                   />
                 </div>
@@ -846,6 +889,23 @@ Date,Description,Branch,Amount,,Balance
             </form>
           </div>
         </div>
+      )}
+
+      {/* Post BCA Mutation to Bookkeeping Modal */}
+      {selectedMutationForPost && (
+        <PostBcaToBookkeepingModal
+          isOpen={isPostModalOpen}
+          onClose={() => {
+            setIsPostModalOpen(false)
+            setSelectedMutationForPost(null)
+          }}
+          mutation={selectedMutationForPost}
+          incomeCategories={incomeCategories}
+          expenseCategories={expenseCategories}
+          customers={customers}
+          contracts={contracts}
+          trucks={trucks}
+        />
       )}
     </div>
   )

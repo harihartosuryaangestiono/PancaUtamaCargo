@@ -43,6 +43,16 @@ export default async function ContractDetailPage({ params }: ContractDetailPageP
     }
   }
 
+  const getPaymentStatusBadge = (paymentStatus: string, remainingPiutang: number) => {
+    if (paymentStatus === 'PAID' || remainingPiutang <= 0) {
+      return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#34C759]/10 text-[#248A3D] border border-[#34C759]/20 uppercase">LUNAS</span>
+    }
+    if (paymentStatus === 'PARTIAL') {
+      return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#007AFF]/10 text-[#007AFF] border border-[#007AFF]/20 uppercase">SEBAGIAN (PARTIAL)</span>
+    }
+    return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#FF3B30]/10 text-[#FF3B30] border border-[#FF3B30]/20 uppercase">PIUTANG (UNPAID)</span>
+  }
+
   return (
     <div className="space-y-8 text-[#1D1D1F]">
       {/* Back CTA */}
@@ -57,11 +67,12 @@ export default async function ContractDetailPage({ params }: ContractDetailPageP
         {/* Contract Header Profile Card */}
         <div className="p-6 sm:p-8 rounded-2xl bg-white border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 rounded-xl bg-[#007AFF]/10 text-[#007AFF] font-semibold font-mono text-xs border border-[#007AFF]/20">
                 {contract.contractNumber}
               </span>
               {getStatusBadge(contract.status)}
+              {getPaymentStatusBadge(contract.paymentStatus, contract.remainingPiutang)}
             </div>
             <h1 className="text-2xl font-semibold text-[#1D1D1F] tracking-tight">
               Kontrak Perjalanan: {contract.customer?.name}
@@ -74,14 +85,20 @@ export default async function ContractDetailPage({ params }: ContractDetailPageP
           <div className="flex flex-wrap gap-4 text-xs font-medium text-[#6E6E73] border-t md:border-t-0 md:border-l border-black/[0.06] pt-4 md:pt-0 md:pl-6">
             <div>
               <span className="block text-[10px] text-[#6E6E73]">Total Value Kontrak</span>
-              <span className="font-semibold text-base text-[#34C759]">
+              <span className="font-semibold text-base text-[#1D1D1F]">
                 {formatCurrency(contract.totalRevenue)}
               </span>
             </div>
             <div>
-              <span className="block text-[10px] text-[#6E6E73]">Tanggal Mulai</span>
-              <span className="font-mono font-semibold text-[#1D1D1F]">
-                {formatDate(contract.startDate)}
+              <span className="block text-[10px] text-[#6E6E73]">Uang Masuk / Terbayar</span>
+              <span className="font-semibold text-base text-[#34C759]">
+                {formatCurrency(contract.paidAmount)}
+              </span>
+            </div>
+            <div>
+              <span className="block text-[10px] text-[#6E6E73]">Sisa Piutang</span>
+              <span className={`font-semibold text-base ${contract.remainingPiutang > 0 ? 'text-[#FF3B30]' : 'text-[#34C759]'}`}>
+                {formatCurrency(contract.remainingPiutang)}
               </span>
             </div>
           </div>

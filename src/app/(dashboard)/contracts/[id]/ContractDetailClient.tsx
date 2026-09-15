@@ -3,12 +3,13 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Check, Plus, DollarSign, Printer, FileText, Receipt } from 'lucide-react'
+import { Check, Plus, DollarSign, Printer, FileText, Receipt, ArrowDownCircle } from 'lucide-react'
 import { recordDriverAdvanceAction, settleDriverAction } from '@/app/actions/driverSettlementActions'
 import { updateContractStatusAction } from '@/app/actions/contractActions'
-import { formatCurrency } from '@/lib/utils/format'
+import { formatCurrency, formatDate } from '@/lib/utils/format'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { EditContractCostsModal } from '../EditContractCostsModal'
+import { RecordPaymentModal } from '@/app/(dashboard)/financials/piutang/RecordPaymentModal'
 
 interface ContractDetailClientProps {
   contract: any
@@ -22,6 +23,7 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
   const router = useRouter()
   const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false)
   const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false)
+  const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false)
   const [isConfirmCompleteOpen, setIsConfirmCompleteOpen] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
   const [advanceAmount, setAdvanceAmount] = useState('3000000')
@@ -151,6 +153,13 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
         )}
 
         {/* Print Document Shortcuts */}
+        <button
+          onClick={() => setIsRecordPaymentOpen(true)}
+          className="px-4 py-2.5 rounded-xl bg-[#34C759] hover:bg-[#28A745] text-white font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
+        >
+          <ArrowDownCircle className="w-4 h-4" /> Catat Uang Masuk Customer
+        </button>
+
         <Link
           href={`/contracts/${contract.id}/surat-jalan`}
           className="px-4 py-2.5 rounded-xl bg-white text-[#1D1D1F] hover:bg-[#F5F5F7] border border-black/[0.08] font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
@@ -288,6 +297,72 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
           </div>
         </div>
       )}
+
+      {/* Record Payment Modal */}
+      <RecordPaymentModal
+        isOpen={isRecordPaymentOpen}
+        onClose={() => setIsRecordPaymentOpen(false)}
+        contract={contract}
+      />
+
+      {/* Incoming Transactions History Card */}
+      {contract.financialTransactions && contract.financialTransactions.length > 0 && (
+        <div className="p-6 rounded-2xl bg-white border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xs font-bold text-[#1D1D1F] uppercase tracking-wider">
+                Riwayat Uang Masuk / Pelunasan Customer ({contract.financialTransactions.length})
+              </h3>
+              <p className="text-[11px] text-[#6E6E73]">
+                Catatan transaksi pemasukan keuangan yang terhubung dengan kontrak ini.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-[#34C759]">
+              Total Dibayar: +{formatCurrency(contract.paidAmount)}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-[#FAFAFA] text-[#6E6E73] uppercase tracking-wider font-semibold border-b border-black/[0.06]">
+                <tr>
+                  <th className="py-2.5 px-3">No. Transaksi</th>
+                  <th className="py-2.5 px-3">Tanggal Transfer</th>
+                  <th className="py-2.5 px-3 text-right">Nominal Rp</th>
+                  <th className="py-2.5 px-3">Metode Bayar</th>
+                  <th className="py-2.5 px-3">No. Referensi</th>
+                  <th className="py-2.5 px-3">Dicatat Oleh</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black/[0.06] font-medium">
+                {contract.financialTransactions.map((trx: any) => (
+                  <tr key={trx.id} className="hover:bg-[#F5F5F7] transition-colors">
+                    <td className="py-2.5 px-3 font-semibold text-[#1D1D1F]">
+                      {trx.transactionNumber}
+                    </td>
+                    <td className="py-2.5 px-3 text-[#6E6E73]">
+                      {formatDate(trx.date)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono font-bold text-[#34C759]">
+                      +{formatCurrency(Number(trx.amount))}
+                    </td>
+                    <td className="py-2.5 px-3 text-[#6E6E73]">
+                      {trx.paymentMethod}
+                    </td>
+                    <td className="py-2.5 px-3 text-[#6E6E73]">
+                      {trx.referenceNumber || '-'}
+                    </td>
+                    <td className="py-2.5 px-3 text-[#6E6E73]">
+                      {trx.createdBy?.name || '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+

@@ -4,9 +4,13 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// In development, ensure global instance has the latest generated models (e.g. tripContract, driver)
+// In development, ensure global instance has the latest generated models (e.g. bcaMutation, tripContract, driver)
 const existingPrisma = globalForPrisma.prisma
-const isInstanceUpToDate = existingPrisma && (existingPrisma as any).tripContract && (existingPrisma as any).driver
+const isInstanceUpToDate =
+  existingPrisma &&
+  (existingPrisma as any).tripContract &&
+  (existingPrisma as any).driver &&
+  (existingPrisma as any).bcaMutation
 
 export const prisma =
   isInstanceUpToDate
@@ -16,4 +20,5 @@ export const prisma =
       })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+
 

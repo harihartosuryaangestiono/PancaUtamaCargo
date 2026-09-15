@@ -268,6 +268,16 @@ export async function getBcaMutationsAction(searchQuery?: string) {
 
   const list = await prisma.bcaMutation.findMany({
     where: whereClause,
+    include: {
+      postedTrx: {
+        include: {
+          incomeCategory: true,
+          expenseCategory: true,
+          customer: true,
+          contract: true,
+        },
+      },
+    },
     orderBy: { createdAt: 'asc' },
   })
 
@@ -363,3 +373,136 @@ export async function clearAllBcaMutationsAction() {
   revalidatePath('/financials/bca-mutations')
   return { success: true }
 }
+
+export interface PostBcaMutationInput {
+  bcaMutationId: string
+  categoryId: string
+  type: 'INCOME' | 'EXPENSE'
+  description?: string
+  customerId?: string
+  contractId?: string
+  truckId?: string
+  maintenanceType?: string
+  notes?: string
+}
+
+export async function postBcaMutationToBookkeepingAction(input: PostBcaMutationInput) {
+  const user = await requireFinanceOrOwner()
+
+  const bca = await prisma.bcaMutation.findUnique({
+    where: { id: input.bcaMutationId },
+  })
+
+  if (!bca) {
+    return { error: 'Data mutasi BCA tidak ditemukan.' }
+  }
+
+  if (bca.isPosted) {
+    return { error: 'Mutasi BCA ini sudah pernah diposting ke Pembukuan.' }
+  }
+
+  const amount = Number(bca.amount)
+  if (isNaN(amount) || amount <= 0) {
+    return { error: 'Nominal mutasi harus lebih besar dari 0.' }
+  }
+
+  const transactionNumber = `TRX-BCA-${input.type === 'INCOME' ? 'INC' : 'EXP'}-${Date.now().toString().slice(-6)}`
+  const dateObj = bca.date || new Date()
+  const desc = input.description || bca.description
+
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. If contractId is provided and type is INCOME, update contract paidAmount & status
+    let updatedContract = null
+    if (input.type === 'INCOME' && input.contractId) {
+      const contract = await tx.tripContract.findUnique({
+        where: { id: input.contractId },
+        include: { legs: true },
+      })
+      if (contract) {
+        let totalRev = 0
+        for (const leg of contract.legs) {
+          if (leg.contractValue) totalRev += Number(leg.contractValue)
+        }
+        const currentPaid = Number(contract.paidAmount || 0)
+        const newPaidAmount = currentPaid + amount
+        const newPaymentStatus = newPaidAmount >= totalRev ? 'PAID' : (newPaidAmount > 0 ? 'PARTIAL' : 'UNPAID')
+
+        updatedContract = await tx.tripContract.update({
+          where: { id: contract.id },
+          data: {
+            paidAmount: newPaidAmount,
+            paymentStatus: newPaymentStatus,
+          },
+        })
+      }
+    }
+
+    // 2. If type is EXPENSE and truckId is provided, create Maintenance record
+    let maintenanceRecord = null
+    if (input.type === 'EXPENSE' && input.truckId) {
+      const mCount = await tx.maintenance.count()
+      const mNum = `MNT-${new Date().getFullYear()}-${String(mCount + 1).padStart(4, '0')}`
+      maintenanceRecord = await tx.maintenance.create({
+        data: {
+          maintenanceNumber: mNum,
+          date: dateObj,
+          truckId: input.truckId,
+          maintenanceType: (input.maintenanceType as any) || 'REPAIR',
+          description: desc,
+          laborCost: amount,
+          totalCost: amount,
+          notes: input.notes || `Diposting dari Mutasi BCA (${bca.description})`,
+          createdById: user.userId,
+        },
+      })
+    }
+
+    // 3. Create FinancialTransaction
+    const trx = await tx.financialTransaction.create({
+      data: {
+        transactionNumber,
+        type: input.type,
+        date: dateObj,
+        incomeCategoryId: input.type === 'INCOME' ? input.categoryId : null,
+        expenseCategoryId: input.type === 'EXPENSE' ? input.categoryId : null,
+        description: desc,
+        customerId: input.customerId || null,
+        contractId: input.contractId || null,
+        maintenanceId: maintenanceRecord?.id || null,
+        amount: amount,
+        paymentMethod: 'TRANSFER',
+        referenceNumber: `BCA-${bca.branch || '0000'}`,
+        notes: input.notes || `Post dari Mutasi BCA: ${bca.description}`,
+        createdById: user.userId,
+      },
+    })
+
+    // 4. Update BcaMutation as isPosted = true
+    const updatedBca = await tx.bcaMutation.update({
+      where: { id: bca.id },
+      data: {
+        isPosted: true,
+        postedTrxId: trx.id,
+      },
+    })
+
+    return { trx, updatedBca, updatedContract, maintenanceRecord }
+  })
+
+  await createAuditLog({
+    action: 'POST_BCA_MUTATION_TO_BOOKKEEPING',
+    module: 'FINANCE',
+    recordId: bca.id,
+    afterValue: { type: input.type, amount, trxId: result.trx.id },
+  })
+
+  revalidatePath('/financials/bca-mutations')
+  revalidatePath('/financials')
+  revalidatePath('/financials/piutang')
+  if (input.contractId) revalidatePath(`/contracts/${input.contractId}`)
+  if (input.truckId) revalidatePath(`/trucks/${input.truckId}`)
+  revalidatePath('/maintenance')
+
+  return { success: true, transaction: result.trx, record: result.updatedBca }
+}
+

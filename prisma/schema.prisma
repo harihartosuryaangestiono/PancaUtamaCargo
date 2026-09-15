@@ -554,6 +554,9 @@ model FinancialTransaction {
   sparepartPurchase SparepartPurchase? @relation(fields: [purchaseId], references: [id])
   maintenanceId     String?            @unique
   maintenance       Maintenance?       @relation(fields: [maintenanceId], references: [id])
+  contractId        String?
+  contract          TripContract?      @relation(fields: [contractId], references: [id])
+  bcaMutation       BcaMutation?
   amount            Decimal
   paymentMethod     PaymentMethod      @default(TRANSFER)
   referenceNumber   String?
@@ -567,6 +570,7 @@ model FinancialTransaction {
   @@index([date])
   @@index([type])
   @@index([customerId])
+  @@index([contractId])
 }
 
 model AuditLog {
@@ -705,17 +709,20 @@ model TripContract {
   startDate      DateTime
   endDate        DateTime?
   status         ContractStatus @default(IN_PROGRESS)
+  paymentStatus  PaymentStatus  @default(UNPAID)
+  paidAmount     Decimal        @default(0)
   notes          String?
   createdById    String
   createdBy      User           @relation(fields: [createdById], references: [id])
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  legs          TripLeg[]
-  advances      DriverAdvance[]
-  settlements   DriverSettlement[]
-  fuelLogs      FuelLog[]
-  ledgerEntries DriverLedgerEntry[]
+  legs                  TripLeg[]
+  advances              DriverAdvance[]
+  settlements           DriverSettlement[]
+  fuelLogs              FuelLog[]
+  ledgerEntries         DriverLedgerEntry[]
+  financialTransactions FinancialTransaction[]
 
   @@index([truckId])
   @@index([customerId])
@@ -860,11 +867,15 @@ model BcaMutation {
   amount      Decimal   @default(0)
   type        String    // "CR" or "DB"
   balance     Decimal   @default(0)
+  isPosted    Boolean   @default(false)
+  postedTrxId String?   @unique
+  postedTrx   FinancialTransaction? @relation(fields: [postedTrxId], references: [id])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   @@index([accountNo])
   @@index([date])
+  @@index([isPosted])
 }
 
 model KasMutation {
