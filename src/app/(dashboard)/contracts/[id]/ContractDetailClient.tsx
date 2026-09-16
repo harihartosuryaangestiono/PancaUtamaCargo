@@ -3,13 +3,15 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Check, Plus, DollarSign, Printer, FileText, Receipt, ArrowDownCircle } from 'lucide-react'
+import { Check, Plus, DollarSign, Printer, FileText, Receipt, ArrowDownCircle, Edit3, Trash2 } from 'lucide-react'
 import { recordDriverAdvanceAction, settleDriverAction } from '@/app/actions/driverSettlementActions'
-import { updateContractStatusAction } from '@/app/actions/contractActions'
+import { updateContractStatusAction, deleteContractPaymentTransactionAction } from '@/app/actions/contractActions'
 import { formatCurrency, formatDate } from '@/lib/utils/format'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { EditContractCostsModal } from '../EditContractCostsModal'
 import { RecordPaymentModal } from '@/app/(dashboard)/financials/piutang/RecordPaymentModal'
+import { EditPaymentStatusModal } from '@/app/(dashboard)/financials/piutang/EditPaymentStatusModal'
+
 
 interface ContractDetailClientProps {
   contract: any
@@ -24,7 +26,9 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
   const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false)
   const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false)
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false)
+  const [isEditPaymentModalOpen, setIsEditPaymentModalOpen] = useState(false)
   const [isConfirmCompleteOpen, setIsConfirmCompleteOpen] = useState(false)
+
   const [actionLoading, setActionLoading] = useState(false)
   const [advanceAmount, setAdvanceAmount] = useState('3000000')
   const [resolution, setResolution] = useState<'RETURN_TO_COMPANY' | 'ADDITIONAL_PAYMENT' | 'OFFSET_TO_NEXT_TRIP' | 'OTHER'>('RETURN_TO_COMPANY')
@@ -159,6 +163,14 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
         >
           <ArrowDownCircle className="w-4 h-4" /> Catat Uang Masuk Customer
         </button>
+
+        <button
+          onClick={() => setIsEditPaymentModalOpen(true)}
+          className="px-4 py-2.5 rounded-xl bg-[#FF9500] hover:bg-[#E08200] text-white font-semibold text-xs shadow-2xs transition-colors inline-flex items-center gap-2"
+        >
+          <Edit3 className="w-4 h-4" /> Ubah Status Pembayaran / Piutang
+        </button>
+
 
         <Link
           href={`/contracts/${contract.id}/surat-jalan`}
@@ -305,6 +317,13 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
         contract={contract}
       />
 
+      {/* Edit Payment Status Modal */}
+      <EditPaymentStatusModal
+        isOpen={isEditPaymentModalOpen}
+        onClose={() => setIsEditPaymentModalOpen(false)}
+        contract={contract}
+      />
+
       {/* Incoming Transactions History Card */}
       {contract.financialTransactions && contract.financialTransactions.length > 0 && (
         <div className="p-6 rounded-2xl bg-white border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-4">
@@ -332,6 +351,7 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
                   <th className="py-2.5 px-3">Metode Bayar</th>
                   <th className="py-2.5 px-3">No. Referensi</th>
                   <th className="py-2.5 px-3">Dicatat Oleh</th>
+                  <th className="py-2.5 px-3 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/[0.06] font-medium">
@@ -354,6 +374,20 @@ export function ContractDetailClient({ contract, userRole, customers = [], truck
                     </td>
                     <td className="py-2.5 px-3 text-[#6E6E73]">
                       {trx.createdBy?.name || '-'}
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      <button
+                        onClick={async () => {
+                          if (confirm('Hapus pencatatan uang masuk ini? Status piutang akan dihitung ulang.')) {
+                            await deleteContractPaymentTransactionAction(trx.id)
+                            router.refresh()
+                          }
+                        }}
+                        className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors"
+                        title="Hapus pencatatan uang masuk ini"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -17,6 +17,8 @@ import {
   Truck,
 } from 'lucide-react'
 import { RecordPaymentModal } from './RecordPaymentModal'
+import { EditPaymentStatusModal } from './EditPaymentStatusModal'
+import { Edit3 } from 'lucide-react'
 
 interface PiutangClientTableProps {
   initialContracts: any[]
@@ -38,9 +40,12 @@ export function PiutangClientTable({ initialContracts, summary, customers }: Piu
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('ALL')
   const [statusFilter, setStatusFilter] = useState<string>('ALL_PIUTANG')
 
-  // Selected contract for modal
+  // Selected contract for modals
   const [selectedContract, setSelectedContract] = useState<any | null>(null)
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
+
+  const [selectedEditContract, setSelectedEditContract] = useState<any | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false)
 
   // Filtering
   const filteredContracts = contracts.filter((c) => {
@@ -68,6 +73,12 @@ export function PiutangClientTable({ initialContracts, summary, customers }: Piu
     setSelectedContract(contract)
     setIsModalOpen(true)
   }
+
+  function openEditModal(contract: any) {
+    setSelectedEditContract(contract)
+    setIsEditModalOpen(true)
+  }
+
 
   return (
     <div className="space-y-6">
@@ -306,6 +317,13 @@ export function PiutangClientTable({ initialContracts, summary, customers }: Piu
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openEditModal(c)}
+                            className="px-2.5 py-1.5 rounded-xl bg-[#FF9500]/10 hover:bg-[#FF9500]/20 text-[#D67E00] border border-[#FF9500]/30 text-[11px] font-bold transition-colors inline-flex items-center gap-1"
+                            title="Ubah Status & Nominal Pembayaran (Misal: Koreksi Salah Tandai Lunas)"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" /> Ubah Status
+                          </button>
                           {!isPaid && (
                             <button
                               onClick={() => openPaymentModal(c)}
@@ -340,6 +358,18 @@ export function PiutangClientTable({ initialContracts, summary, customers }: Piu
             setSelectedContract(null)
           }}
           contract={selectedContract}
+        />
+      )}
+
+      {/* Edit Payment Status Modal */}
+      {selectedEditContract && (
+        <EditPaymentStatusModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false)
+            setSelectedEditContract(null)
+          }}
+          contract={selectedEditContract}
         />
       )}
     </div>

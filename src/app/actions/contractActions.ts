@@ -695,4 +695,125 @@ export async function recordContractPaymentAction(input: RecordContractPaymentIn
   return { success: true, transaction: result.trx, contract: result.updatedContract }
 }
 
+export interface UpdateContractPaymentStatusInput {
+  contractId: string
+  paymentStatus: 'UNPAID' | 'PARTIAL' | 'PAID'
+  paidAmount: number
+  notes?: string
+}
+
+export async function updateContractPaymentStatusAction(input: UpdateContractPaymentStatusInput) {
+  const user = await requireFinanceOrOwner()
+
+  const paidAmount = Number(input.paidAmount) || 0
+  if (paidAmount < 0) {
+    return { error: 'Nominal pembayaran tidak boleh kurang dari 0.' }
+  }
+
+  const contract = await prisma.tripContract.findUnique({
+    where: { id: input.contractId },
+    include: { legs: true },
+  })
+
+  if (!contract) {
+    return { error: 'Kontrak tidak ditemukan.' }
+  }
+
+  let totalRevenue = 0
+  for (const leg of contract.legs) {
+    if (leg.contractValue) totalRevenue += Number(leg.contractValue)
+  }
+
+  let finalStatus = input.paymentStatus
+  if (!finalStatus) {
+    finalStatus = paidAmount >= totalRevenue && totalRevenue > 0 ? 'PAID' : (paidAmount > 0 ? 'PARTIAL' : 'UNPAID')
+  }
+
+  const updatedContract = await prisma.tripContract.update({
+    where: { id: contract.id },
+    data: {
+      paidAmount: paidAmount,
+      paymentStatus: finalStatus,
+    },
+  })
+
+  await createAuditLog({
+    action: 'UPDATE_CONTRACT_PAYMENT_STATUS',
+    module: 'FINANCE',
+    recordId: contract.id,
+    beforeValue: { paidAmount: contract.paidAmount, paymentStatus: contract.paymentStatus },
+    afterValue: { paidAmount, paymentStatus: finalStatus, notes: input.notes },
+  })
+
+  revalidatePath(`/contracts/${input.contractId}`)
+  revalidatePath('/contracts')
+  revalidatePath('/financials')
+  revalidatePath('/financials/piutang')
+  revalidatePath('/dashboard')
+
+  return { success: true, contract: updatedContract }
+}
+
+export async function deleteContractPaymentTransactionAction(transactionId: string) {
+  const user = await requireFinanceOrOwner()
+
+  const trx = await prisma.financialTransaction.findUnique({
+    where: { id: transactionId },
+    include: { contract: { include: { legs: true } } },
+  })
+
+  if (!trx) {
+    return { error: 'Transaksi tidak ditemukan.' }
+  }
+
+  const contractId = trx.contractId
+
+  await prisma.financialTransaction.delete({
+    where: { id: transactionId },
+  })
+
+  if (contractId) {
+    const remainingTrxs = await prisma.financialTransaction.findMany({
+      where: { contractId, type: 'INCOME' },
+    })
+
+    const newPaidAmount = remainingTrxs.reduce((sum, t) => sum + Number(t.amount), 0)
+    const contract = await prisma.tripContract.findUnique({
+      where: { id: contractId },
+      include: { legs: true },
+    })
+
+    if (contract) {
+      let totalRevenue = 0
+      for (const leg of contract.legs) {
+        if (leg.contractValue) totalRevenue += Number(leg.contractValue)
+      }
+      const newStatus = newPaidAmount >= totalRevenue && totalRevenue > 0 ? 'PAID' : (newPaidAmount > 0 ? 'PARTIAL' : 'UNPAID')
+
+      await prisma.tripContract.update({
+        where: { id: contractId },
+        data: {
+          paidAmount: newPaidAmount,
+          paymentStatus: newStatus,
+        },
+      })
+    }
+  }
+
+  await createAuditLog({
+    action: 'DELETE_CONTRACT_PAYMENT_TRANSACTION',
+    module: 'FINANCE',
+    recordId: transactionId,
+    beforeValue: trx,
+  })
+
+  if (contractId) revalidatePath(`/contracts/${contractId}`)
+  revalidatePath('/contracts')
+  revalidatePath('/financials')
+  revalidatePath('/financials/piutang')
+
+  return { success: true }
+}
+
+
 
