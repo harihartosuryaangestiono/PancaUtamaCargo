@@ -12,6 +12,10 @@ const isInstanceUpToDate =
   (existingPrisma as any).driver &&
   (existingPrisma as any).bcaMutation
 
+if (existingPrisma && !isInstanceUpToDate) {
+  existingPrisma.$disconnect().catch(() => {})
+}
+
 export const prisma =
   isInstanceUpToDate
     ? existingPrisma
@@ -20,5 +24,6 @@ export const prisma =
       })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+
 
 

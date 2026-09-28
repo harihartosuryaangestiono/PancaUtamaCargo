@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { formatCurrency, formatDate } from '@/lib/utils/format'
 import {
@@ -35,7 +35,12 @@ interface PiutangClientTableProps {
 }
 
 export function PiutangClientTable({ initialContracts, summary, customers }: PiutangClientTableProps) {
-  const [contracts] = useState<any[]>(initialContracts)
+  const [contracts, setContracts] = useState<any[]>(initialContracts)
+
+  useEffect(() => {
+    setContracts(initialContracts)
+  }, [initialContracts])
+
   const [search, setSearch] = useState<string>('')
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('ALL')
   const [statusFilter, setStatusFilter] = useState<string>('ALL_PIUTANG')

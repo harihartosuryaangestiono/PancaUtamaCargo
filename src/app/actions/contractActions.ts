@@ -692,7 +692,7 @@ export async function recordContractPaymentAction(input: RecordContractPaymentIn
   revalidatePath('/financials/piutang')
   revalidatePath('/dashboard')
 
-  return { success: true, transaction: result.trx, contract: result.updatedContract }
+  return JSON.parse(JSON.stringify({ success: true, transaction: result.trx, contract: result.updatedContract }))
 }
 
 export interface UpdateContractPaymentStatusInput {
@@ -751,8 +751,9 @@ export async function updateContractPaymentStatusAction(input: UpdateContractPay
   revalidatePath('/financials/piutang')
   revalidatePath('/dashboard')
 
-  return { success: true, contract: updatedContract }
+  return JSON.parse(JSON.stringify({ success: true, contract: updatedContract }))
 }
+
 
 export async function deleteContractPaymentTransactionAction(transactionId: string) {
   const user = await requireFinanceOrOwner()

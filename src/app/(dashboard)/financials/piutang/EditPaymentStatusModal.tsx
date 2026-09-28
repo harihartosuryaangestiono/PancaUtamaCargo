@@ -65,7 +65,9 @@ export function EditPaymentStatusModal({ isOpen, onClose, contract, onSuccess }:
       onClose()
       if (onSuccess) onSuccess()
       router.refresh()
+      window.location.reload()
     } catch (err: any) {
+
       setError(err.message || 'Gagal memperbarui status pembayaran.')
     } finally {
       setLoading(false)

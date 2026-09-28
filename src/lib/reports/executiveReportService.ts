@@ -92,6 +92,8 @@ export interface ExecutiveSummary {
     maintenance: number
     sparepart: number
     tire: number
+    leasing?: number
+    adminOffice?: number
     other: number
   }
   
@@ -137,12 +139,14 @@ export interface MonthlyPerformanceRow {
   maintenanceCost: number
   sparepartCost: number
   tireCost: number
+  leasingCost: number
+  adminCost: number
   otherCost: number
   totalOperatingCost: number
   totalCost: number
   netProfit: number
   profitMargin: number
-  status: 'HIGH MARGIN' | 'NORMAL' | 'LOW MARGIN' | 'LOSS'
+  status: 'HIGH MARGIN' | 'NORMAL' | 'LOW MARGIN' | 'LOSS' | 'NO_DATA'
 }
 
 export interface ContractProfitabilityItem {
@@ -260,6 +264,60 @@ export interface DriverCashFlowSummary {
   outstandingDriverBalance: number
 }
 
+export interface MonthlyPnLStatement {
+  monthKey: string
+  periodLabel: string
+  revenue: {
+    grossContractValue: number
+    taxDeduction: number
+    netContractValue: number
+    otherIncome: number
+    totalNetRevenue: number
+  }
+  directTripCosts: {
+    driverShare: number
+    companyToll: number
+    driverToll: number
+    totalToll: number
+    fuelCost: number
+    otherTripCost: number
+    totalDirectTripCosts: number
+  }
+  grossProfit: number
+  grossProfitMargin: number
+  operatingExpenses: {
+    maintenance: number
+    tires: number
+    spareparts: number
+    truckLeasing: number
+    bankAndAdmin: number
+    officeAndOther: number
+    totalOperatingExpenses: number
+    breakdownItems: Array<{
+      date: string
+      category: string
+      description: string
+      amount: number
+    }>
+  }
+  netOperatingProfit: number
+  netProfitMargin: number
+  contractsCount: number
+  completedContractsCount: number
+  totalDistanceKm: number
+  customerPaymentsReceived: number
+  outstandingReceivables: number
+}
+
+export interface AvailableMonthOption {
+  monthKey: string
+  label: string
+  contractsCount: number
+  grossRevenue: number
+  netProfit: number
+  hasData: boolean
+}
+
 export interface ExecutiveFinancialReport {
   summary: ExecutiveSummary
   profitTrend: ProfitTrendPoint[]
@@ -272,13 +330,44 @@ export interface ExecutiveFinancialReport {
   fuelIntelligence: FuelIntelligenceSummary
   maintenanceIntelligence: MaintenanceIntelligenceSummary
   tireIntelligence: TireIntelligenceSummary
+  monthlyPnLStatement: MonthlyPnLStatement
+  availableMonths: AvailableMonthOption[]
   insights: string[]
+}
+
+export function classifyExpense(catName?: string | null, desc?: string | null) {
+  const cat = (catName || '').toLowerCase()
+  const d = (desc || '').toLowerCase()
+
+  if (cat.includes('maintenance') || /service|maintenance|ganti filter|kelistrikan|bengkel/i.test(d)) {
+    return 'maintenance'
+  }
+  if (cat.includes('ban') || /\bban\b|pecah ban|vulkanisir/i.test(d)) {
+    return 'tires'
+  }
+  if (cat.includes('sparepart') || /sparepart|onderdil/i.test(d)) {
+    return 'spareparts'
+  }
+  if (/dipostar|leasing|angsuran truk/i.test(d)) {
+    return 'truckLeasing'
+  }
+  if (/bi-fast|atm|biaya txn|tarikan pemindahan|administrasi/i.test(d)) {
+    return 'bankAndAdmin'
+  }
+  if (cat.includes('bahan bakar') || /spbu|solar|bbm/i.test(d)) {
+    return 'fuel'
+  }
+  if (cat.includes('tol') || /flazz|e-toll/i.test(d)) {
+    return 'toll'
+  }
+  return 'officeAndOther'
 }
 
 export async function getExecutiveDashboard(
   period: PeriodFilter = 'THIS_MONTH',
   customStart?: string,
-  customEnd?: string
+  customEnd?: string,
+  targetMonthKey?: string
 ): Promise<ExecutiveFinancialReport> {
   const ranges = getDateRanges(period, customStart, customEnd)
 
@@ -306,12 +395,6 @@ export async function getExecutiveDashboard(
     ]
   }
 
-  // Exclude CANCELLED contracts from completed revenue & distance
-  const validContractWhere = {
-    ...contractWhere,
-    status: { not: 'CANCELLED' },
-  }
-
   // Fetch contracts for current period
   const contracts = await prisma.tripContract.findMany({
     where: contractWhere,
@@ -335,7 +418,8 @@ export async function getExecutiveDashboard(
   // Financial transactions for expenses
   const finTransactions = await prisma.financialTransaction.findMany({
     where: finWhere,
-    include: { expenseCategory: true },
+    include: { expenseCategory: true, incomeCategory: true },
+    orderBy: { date: 'desc' },
   })
 
   // Fuel logs
@@ -362,42 +446,82 @@ export async function getExecutiveDashboard(
   let totalTollCost = 0
   let totalOtherCost = 0
   let totalDistanceKm = 0
+  let totalCompanyToll = 0
 
   contracts.forEach((c) => {
     if (c.status === 'CANCELLED') return
     c.legs.forEach((leg) => {
-      totalGrossRevenue += Number(leg.contractValue || 0)
-      totalTollCost += Number(leg.tollCost || 0)
-      totalFuelCost += Number(leg.fuelCost || 0)
-      totalOtherCost += Number(leg.otherCost || 0)
+      const v = Number(leg.contractValue || 0)
+      const t = Number(leg.tollCost || 0)
+      const ct = Number(leg.companyTollCost || t * 0.6)
+      const f = Number(leg.fuelCost || 0)
+      const o = Number(leg.otherCost || 0)
+      totalGrossRevenue += v
+      totalTollCost += t
+      totalCompanyToll += ct
+      totalFuelCost += f
+      totalOtherCost += o
       totalDistanceKm += leg.distanceKm || 0
     })
   })
 
-  // 98% Net Received by company
-  const totalRevenue = totalGrossRevenue * 0.98
+  // 98% Net Received by company from contracts
+  const netContractValueTotal = totalGrossRevenue * 0.98
 
-  // 53% Driver Share (Hak Supir) & 47% Company Share (Hak Perusahaan)
-  const driverShare = totalRevenue * 0.53
-  const companyGrossShare = totalRevenue * 0.47
+  // 53% Driver Share (Hak Supir)
+  const driverShare = totalGrossRevenue * 0.53
 
-  // Calculate Fuel from FuelLogs if higher
+  // Classify expenses from finTransactions
+  let finFuelCost = 0
+  let finTollCost = 0
+  let maintenanceCostTotal = maintenanceRecords.reduce((sum, m) => sum + Number(m.totalCost || 0), 0)
+  let sparepartCostTotal = 0
+  let tireCostTotal = 0
+  let leasingCostTotal = 0
+  let adminOfficeCostTotal = 0
+  let finOtherCostTotal = 0
+  let otherIncomeTotal = 0
+
+  finTransactions.forEach((f) => {
+    const amt = Number(f.amount || 0)
+    if (f.type === 'INCOME') {
+      const cat = (f.incomeCategory?.name || '').toLowerCase()
+      if (!f.contractId && cat !== 'hasil pengiriman') {
+        otherIncomeTotal += amt
+      }
+    } else {
+      const classified = classifyExpense(f.expenseCategory?.name, f.description)
+      if (classified === 'maintenance') maintenanceCostTotal += amt
+      else if (classified === 'tires') tireCostTotal += amt
+      else if (classified === 'spareparts') sparepartCostTotal += amt
+      else if (classified === 'truckLeasing') leasingCostTotal += amt
+      else if (classified === 'bankAndAdmin') adminOfficeCostTotal += amt
+      else if (classified === 'fuel') finFuelCost += amt
+      else if (classified === 'toll') finTollCost += amt
+      else finOtherCostTotal += amt
+    }
+  })
+
   const fuelLogCostTotal = fuelLogs.reduce((sum, f) => sum + Number(f.totalCost || 0), 0)
-  const actualFuelCost = Math.max(totalFuelCost, fuelLogCostTotal)
+  const actualFuelCost = Math.max(totalFuelCost + finFuelCost, fuelLogCostTotal)
+  const actualTollCost = totalCompanyToll + finTollCost
+  const totalOtherExpenses = totalOtherCost + finOtherCostTotal
 
-  // Maintenance & Sparepart Costs
-  const maintenanceCostTotal = maintenanceRecords.reduce((sum, m) => sum + Number(m.totalCost || 0), 0)
-  const sparepartCostTotal = finTransactions
-    .filter((t) => t.type === 'EXPENSE' && (t.expenseCategory?.name?.toLowerCase().includes('sparepart') || t.description?.toLowerCase().includes('sparepart')))
-    .reduce((sum, t) => sum + Number(t.amount || 0), 0)
+  const totalOperatingCost =
+    actualFuelCost +
+    actualTollCost +
+    maintenanceCostTotal +
+    sparepartCostTotal +
+    tireCostTotal +
+    leasingCostTotal +
+    adminOfficeCostTotal +
+    totalOtherExpenses
 
-  // Tire purchase costs
-  const tireCostTotal = tires.reduce((sum, t) => sum + Number(t.purchasePrice || 0), 0)
+  const totalRevenue = netContractValueTotal + otherIncomeTotal
+  const companyGrossShare = totalGrossRevenue * 0.47 + otherIncomeTotal
 
-  const totalOperatingCost = actualFuelCost + totalTollCost + maintenanceCostTotal + sparepartCostTotal + totalOtherCost
-  
-  // NET COMPANY PROFIT = 47% Company Share - Operating Expenses
-  const netProfit = companyGrossShare - totalOperatingCost
+  // NET COMPANY PROFIT = Total Net Revenue - Driver Share - Total Operating Expenses
+  const netProfit = totalRevenue - driverShare - totalOperatingCost
   const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0
 
   // ----------------------------------------------------
@@ -446,11 +570,13 @@ export async function getExecutiveDashboard(
     costGrowthPct,
     costBreakdown: {
       fuel: actualFuelCost,
-      toll: totalTollCost,
+      toll: actualTollCost,
       maintenance: maintenanceCostTotal,
       sparepart: sparepartCostTotal,
       tire: tireCostTotal,
-      other: totalOtherCost,
+      leasing: leasingCostTotal,
+      adminOffice: adminOfficeCostTotal,
+      other: totalOtherExpenses,
     },
     netProfit,
     prevNetProfit,
@@ -465,14 +591,29 @@ export async function getExecutiveDashboard(
   }
 
   // ----------------------------------------------------
-  // MONTHLY TREND & MONTHLY BUSINESS PERFORMANCE TABLE
+  // FULL YEAR CONSOLIDATION FOR 12-MONTH TABLE & PnL STATEMENT
   // ----------------------------------------------------
-  const monthMap = new Map<string, MonthlyPerformanceRow>()
+  const allYearContracts = await prisma.tripContract.findMany({
+    where: { status: { not: 'CANCELLED' } },
+    include: { legs: true, advances: true, settlements: true, customer: true, truck: true, driver: true },
+    orderBy: { startDate: 'desc' },
+  })
 
-  // Initialize 12 months for THIS_YEAR or last 12 months
+  const allYearFinTrx = await prisma.financialTransaction.findMany({
+    include: { expenseCategory: true, incomeCategory: true },
+    orderBy: { date: 'desc' },
+  })
+
+  const allYearMaintenances = await prisma.maintenance.findMany({
+    include: { truck: true },
+    orderBy: { date: 'desc' },
+  })
+
+  const monthMap = new Map<string, MonthlyPerformanceRow>()
   const year = new Date().getFullYear()
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  
+  const fullMonthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+
   for (let m = 0; m < 12; m++) {
     const key = `${year}-${String(m + 1).padStart(2, '0')}`
     const label = `${monthNames[m]} ${year}`
@@ -490,25 +631,25 @@ export async function getExecutiveDashboard(
       maintenanceCost: 0,
       sparepartCost: 0,
       tireCost: 0,
+      leasingCost: 0,
+      adminCost: 0,
       otherCost: 0,
       totalOperatingCost: 0,
       totalCost: 0,
       netProfit: 0,
       profitMargin: 0,
-      status: 'LOSS',
+      status: 'NO_DATA',
     })
   }
 
-  contracts.forEach((c) => {
-    if (c.status === 'CANCELLED') return
+  // 1. Accumulate ALL contracts across the full year
+  allYearContracts.forEach((c) => {
     const d = new Date(c.startDate)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    const label = `${monthNames[d.getMonth()]} ${d.getFullYear()}`
-    
     if (!monthMap.has(key)) {
       monthMap.set(key, {
         monthKey: key,
-        label,
+        label: `${monthNames[d.getMonth()] || 'M'} ${d.getFullYear()}`,
         contractsCount: 0,
         distanceKm: 0,
         grossRevenue: 0,
@@ -520,25 +661,27 @@ export async function getExecutiveDashboard(
         maintenanceCost: 0,
         sparepartCost: 0,
         tireCost: 0,
+        leasingCost: 0,
+        adminCost: 0,
         otherCost: 0,
         totalOperatingCost: 0,
         totalCost: 0,
         netProfit: 0,
         profitMargin: 0,
-        status: 'LOSS',
+        status: 'NO_DATA',
       })
     }
 
     const row = monthMap.get(key)!
     row.contractsCount += 1
-    
+
     c.legs.forEach((leg) => {
       const gross = Number(leg.contractValue || 0)
       const rev = gross * 0.98
-      const dShare = rev * 0.53
-      const cShare = rev * 0.47
+      const dShare = gross * ((leg.driverPercentage || 53) / 100)
+      const cShare = gross * 0.47
       const fuel = Number(leg.fuelCost || 0)
-      const toll = Number(leg.tollCost || 0)
+      const toll = Number(leg.companyTollCost || Number(leg.tollCost || 0) * 0.6)
       const other = Number(leg.otherCost || 0)
 
       row.grossRevenue += gross
@@ -549,29 +692,260 @@ export async function getExecutiveDashboard(
       row.fuelCost += fuel
       row.tollCost += toll
       row.otherCost += other
-      row.totalOperatingCost += (fuel + toll + other)
     })
+  })
+
+  // 2. Accumulate ALL financial transactions across the full year
+  allYearFinTrx.forEach((f) => {
+    const d = new Date(f.date)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    if (!monthMap.has(key)) return
+    const row = monthMap.get(key)!
+    const amt = Number(f.amount || 0)
+
+    if (f.type === 'INCOME') {
+      const cat = (f.incomeCategory?.name || '').toLowerCase()
+      if (!f.contractId && cat !== 'hasil pengiriman') {
+        row.revenue += amt
+        row.companyShare += amt
+      }
+    } else {
+      const classified = classifyExpense(f.expenseCategory?.name, f.description)
+      if (classified === 'maintenance') row.maintenanceCost += amt
+      else if (classified === 'tires') row.tireCost += amt
+      else if (classified === 'spareparts') row.sparepartCost += amt
+      else if (classified === 'truckLeasing') row.leasingCost += amt
+      else if (classified === 'bankAndAdmin') row.adminCost += amt
+      else if (classified === 'fuel') row.fuelCost += amt
+      else if (classified === 'toll') row.tollCost += amt
+      else row.otherCost += amt
+    }
+  })
+
+  // 3. Accumulate unlinked maintenance
+  allYearMaintenances.forEach((m) => {
+    const d = new Date(m.date)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    if (!monthMap.has(key)) return
+    const row = monthMap.get(key)!
+    // If not already in finTransactions
+    const hasFin = allYearFinTrx.some((f) => f.maintenanceId === m.id)
+    if (!hasFin) {
+      row.maintenanceCost += Number(m.totalCost || 0)
+    }
   })
 
   // Calculate monthly net profit and margin
   const monthlyProfitability: MonthlyPerformanceRow[] = Array.from(monthMap.values()).map((row) => {
+    row.totalOperatingCost =
+      row.fuelCost +
+      row.tollCost +
+      row.maintenanceCost +
+      row.sparepartCost +
+      row.tireCost +
+      row.leasingCost +
+      row.adminCost +
+      row.otherCost
+
     row.totalCost = row.driverShare + row.totalOperatingCost
-    row.netProfit = row.companyShare - row.totalOperatingCost
+    row.netProfit = row.revenue - row.driverShare - row.totalOperatingCost
     row.profitMargin = row.revenue > 0 ? (row.netProfit / row.revenue) * 100 : 0
-    if (row.profitMargin >= 25) row.status = 'HIGH MARGIN'
-    else if (row.profitMargin >= 10) row.status = 'NORMAL'
-    else if (row.profitMargin > 0) row.status = 'LOW MARGIN'
-    else row.status = 'LOSS'
+
+    if (row.contractsCount === 0 && row.totalOperatingCost === 0) {
+      row.status = 'NO_DATA'
+    } else if (row.netProfit < 0) {
+      row.status = 'LOSS'
+    } else if (row.profitMargin >= 30) {
+      row.status = 'HIGH MARGIN'
+    } else if (row.profitMargin >= 10) {
+      row.status = 'NORMAL'
+    } else {
+      row.status = 'LOW MARGIN'
+    }
     return row
   })
 
-  const profitTrend: ProfitTrendPoint[] = monthlyProfitability.map((m) => ({
-    monthKey: m.monthKey,
-    label: m.label,
-    revenue: m.revenue,
-    cost: m.totalCost,
-    netProfit: m.netProfit,
-  }))
+  const profitTrend: ProfitTrendPoint[] = monthlyProfitability
+    .filter((m) => m.contractsCount > 0 || m.totalOperatingCost > 0 || m.monthKey.endsWith('-08') || m.monthKey.endsWith('-09'))
+    .map((m) => ({
+      monthKey: m.monthKey,
+      label: m.label,
+      revenue: m.revenue,
+      cost: m.totalCost,
+      netProfit: m.netProfit,
+    }))
+
+  // ----------------------------------------------------
+  // COMPREHENSIVE MONTHLY P&L STATEMENT GENERATOR
+  // ----------------------------------------------------
+  // Determine target month for statement (default to targetMonthKey or current period month)
+  const currentNow = new Date()
+  let selectedMonthKey = targetMonthKey
+  if (!selectedMonthKey) {
+    if (ranges.startDate) {
+      selectedMonthKey = `${ranges.startDate.getFullYear()}-${String(ranges.startDate.getMonth() + 1).padStart(2, '0')}`
+    } else {
+      selectedMonthKey = `${currentNow.getFullYear()}-${String(currentNow.getMonth() + 1).padStart(2, '0')}`
+    }
+  }
+
+  const [selYear, selMonth] = selectedMonthKey.split('-').map(Number)
+  const selMonthIdx = selMonth - 1
+  const periodLabel = `${fullMonthNames[selMonthIdx] || 'Bulan'} ${selYear}`
+
+  const targetMonthContracts = allYearContracts.filter(
+    (c) => c.startDate.toISOString().slice(0, 7) === selectedMonthKey
+  )
+  const targetMonthFin = allYearFinTrx.filter(
+    (f) => f.date.toISOString().slice(0, 7) === selectedMonthKey
+  )
+
+  let stGrossContractValue = 0
+  let stDriverShare = 0
+  let stCompanyToll = 0
+  let stDriverToll = 0
+  let stTotalToll = 0
+  let stFuelCost = 0
+  let stOtherTripCost = 0
+  let stDistanceKm = 0
+  let stCustomerPaymentsReceived = 0
+
+  targetMonthContracts.forEach((c) => {
+    stCustomerPaymentsReceived += Number(c.paidAmount || 0)
+    c.legs.forEach((leg) => {
+      const v = Number(leg.contractValue || 0)
+      const t = Number(leg.tollCost || 0)
+      const ct = Number(leg.companyTollCost || t * 0.6)
+      const dt = Number(leg.driverTollCost || t * 0.4)
+      const f = Number(leg.fuelCost || 0)
+      const o = Number(leg.otherCost || 0)
+
+      stGrossContractValue += v
+      stDriverShare += v * ((leg.driverPercentage || 53) / 100)
+      stTotalToll += t
+      stCompanyToll += ct
+      stDriverToll += dt
+      stFuelCost += f
+      stOtherTripCost += o
+      stDistanceKm += leg.distanceKm || 0
+    })
+  })
+
+  const stTaxDeduction = stGrossContractValue * 0.02
+  const stNetContractValue = stGrossContractValue * 0.98
+
+  let stOtherIncome = 0
+  let stMaintenance = 0
+  let stTires = 0
+  let stSpareparts = 0
+  let stTruckLeasing = 0
+  let stBankAndAdmin = 0
+  let stOfficeAndOther = 0
+  const breakdownItems: { date: string; category: string; description: string; amount: number }[] = []
+
+  targetMonthFin.forEach((f) => {
+    const amt = Number(f.amount || 0)
+    if (f.type === 'INCOME') {
+      const cat = (f.incomeCategory?.name || '').toLowerCase()
+      if (!f.contractId && cat !== 'hasil pengiriman') {
+        stOtherIncome += amt
+      }
+    } else {
+      const classified = classifyExpense(f.expenseCategory?.name, f.description)
+      breakdownItems.push({
+        date: f.date.toISOString().slice(0, 10),
+        category:
+          classified === 'truckLeasing'
+            ? 'Cicilan / Leasing Truk'
+            : classified === 'tires'
+            ? 'Ban Armada'
+            : classified === 'maintenance'
+            ? 'Maintenance & Bengkel'
+            : classified === 'spareparts'
+            ? 'Sparepart'
+            : classified === 'bankAndAdmin'
+            ? 'Administrasi Bank & Kas'
+            : classified === 'fuel'
+            ? 'BBM Solar'
+            : classified === 'toll'
+            ? 'Tol Armada'
+            : 'Operasional Lainnya',
+        description: f.description,
+        amount: amt,
+      })
+
+      if (classified === 'maintenance') stMaintenance += amt
+      else if (classified === 'tires') stTires += amt
+      else if (classified === 'spareparts') stSpareparts += amt
+      else if (classified === 'truckLeasing') stTruckLeasing += amt
+      else if (classified === 'bankAndAdmin') stBankAndAdmin += amt
+      else if (classified === 'fuel') stFuelCost += amt
+      else if (classified === 'toll') stCompanyToll += amt
+      else stOfficeAndOther += amt
+    }
+  })
+
+  const stTotalDirectTripCosts = stDriverShare + stCompanyToll + stFuelCost + stOtherTripCost
+  const stGrossProfit = stNetContractValue - stTotalDirectTripCosts
+  const stGrossProfitMargin = stNetContractValue > 0 ? (stGrossProfit / stNetContractValue) * 100 : 0
+
+  const stTotalOperatingExpenses =
+    stMaintenance + stTires + stSpareparts + stTruckLeasing + stBankAndAdmin + stOfficeAndOther
+  const stTotalNetRevenue = stNetContractValue + stOtherIncome
+  const stNetOperatingProfit = stGrossProfit + stOtherIncome - stTotalOperatingExpenses
+  const stNetProfitMargin = stTotalNetRevenue > 0 ? (stNetOperatingProfit / stTotalNetRevenue) * 100 : 0
+
+  const monthlyPnLStatement: MonthlyPnLStatement = {
+    monthKey: selectedMonthKey,
+    periodLabel,
+    revenue: {
+      grossContractValue: stGrossContractValue,
+      taxDeduction: stTaxDeduction,
+      netContractValue: stNetContractValue,
+      otherIncome: stOtherIncome,
+      totalNetRevenue: stTotalNetRevenue,
+    },
+    directTripCosts: {
+      driverShare: stDriverShare,
+      companyToll: stCompanyToll,
+      driverToll: stDriverToll,
+      totalToll: stTotalToll,
+      fuelCost: stFuelCost,
+      otherTripCost: stOtherTripCost,
+      totalDirectTripCosts: stTotalDirectTripCosts,
+    },
+    grossProfit: stGrossProfit,
+    grossProfitMargin: stGrossProfitMargin,
+    operatingExpenses: {
+      maintenance: stMaintenance,
+      tires: stTires,
+      spareparts: stSpareparts,
+      truckLeasing: stTruckLeasing,
+      bankAndAdmin: stBankAndAdmin,
+      officeAndOther: stOfficeAndOther,
+      totalOperatingExpenses: stTotalOperatingExpenses,
+      breakdownItems,
+    },
+    netOperatingProfit: stNetOperatingProfit,
+    netProfitMargin: stNetProfitMargin,
+    contractsCount: targetMonthContracts.length,
+    completedContractsCount: targetMonthContracts.filter((c) => c.status === 'COMPLETED').length,
+    totalDistanceKm: stDistanceKm,
+    customerPaymentsReceived: stCustomerPaymentsReceived,
+    outstandingReceivables: Math.max(0, stGrossContractValue - stCustomerPaymentsReceived),
+  }
+
+  // Available months list for picker
+  const availableMonths: AvailableMonthOption[] = Array.from(monthMap.values())
+    .map((row) => ({
+      monthKey: row.monthKey,
+      label: row.label,
+      contractsCount: row.contractsCount,
+      grossRevenue: row.grossRevenue,
+      netProfit: row.netProfit,
+      hasData: row.contractsCount > 0 || row.totalOperatingCost > 0,
+    }))
+    .reverse()
 
   // ----------------------------------------------------
   // CONTRACT PROFITABILITY & ROUND-TRIP INTELLIGENCE
@@ -963,6 +1337,8 @@ export async function getExecutiveDashboard(
     fuelIntelligence,
     maintenanceIntelligence,
     tireIntelligence,
+    monthlyPnLStatement,
+    availableMonths,
     insights,
   }
 }
