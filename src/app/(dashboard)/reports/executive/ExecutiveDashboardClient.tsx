@@ -39,8 +39,10 @@ export function ExecutiveDashboardClient({ initialData, initialPeriod, userRole 
   const [period, setPeriod] = useState<PeriodFilter>(initialPeriod)
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
+  const now = new Date()
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   const [selectedMonthKey, setSelectedMonthKey] = useState<string>(
-    initialData.monthlyPnLStatement?.monthKey || '2026-09'
+    initialData.monthlyPnLStatement?.monthKey || currentMonthKey
   )
   const [loading, setLoading] = useState(false)
   const [downloadingExcel, setDownloadingExcel] = useState(false)
@@ -137,14 +139,24 @@ export function ExecutiveDashboardClient({ initialData, initialPeriod, userRole 
   const availableMonths = data.availableMonths || []
   const isDataEmpty = s.totalContracts === 0
 
+  // Dynamic Month & Year names
+  const monthNamesId = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ]
+  const currentMonthName = monthNamesId[now.getMonth()]
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const prevMonthName = monthNamesId[prevMonthDate.getMonth()]
+  const currentYear = now.getFullYear()
+
   // Time-based Greeting
-  const currentHour = new Date().getHours()
+  const currentHour = now.getHours()
   let timeGreeting = 'Selamat malam'
   if (currentHour < 11) timeGreeting = 'Selamat pagi'
   else if (currentHour < 15) timeGreeting = 'Selamat siang'
   else if (currentHour < 18) timeGreeting = 'Selamat sore'
 
-  const formattedDate = new Date().toLocaleDateString('id-ID', {
+  const formattedDate = now.toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -173,11 +185,11 @@ export function ExecutiveDashboardClient({ initialData, initialPeriod, userRole 
               onChange={(e) => handlePeriodChange(e.target.value as PeriodFilter)}
               className="appearance-none bg-white text-[#1D1D1F] text-xs font-semibold px-4 py-2.5 pr-8 rounded-xl border border-black/[0.08] shadow-2xs hover:bg-[#FAFAFA] transition-all cursor-pointer outline-none"
             >
-              <option value="THIS_MONTH">Bulan Ini (September)</option>
-              <option value="LAST_MONTH">Bulan Lalu (Agustus)</option>
+              <option value="THIS_MONTH">Bulan Ini ({currentMonthName})</option>
+              <option value="LAST_MONTH">Bulan Lalu ({prevMonthName})</option>
               <option value="THIS_WEEK">Minggu Ini</option>
               <option value="LAST_3_MONTHS">3 Bulan Terakhir</option>
-              <option value="THIS_YEAR">Tahun Ini (2026)</option>
+              <option value="THIS_YEAR">Tahun Ini ({currentYear})</option>
               <option value="ALL_TIME">Semua Waktu</option>
               <option value="CUSTOM">Rentang Kustom</option>
             </select>
@@ -261,9 +273,13 @@ export function ExecutiveDashboardClient({ initialData, initialPeriod, userRole 
             <FileText className="w-7 h-7" />
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-[#1D1D1F] tracking-tight">Dashboard Keuangan Siap Digunakan</h3>
+            <h3 className="text-xl font-semibold text-[#1D1D1F] tracking-tight">
+              {period === 'THIS_MONTH' ? `Belum Ada Kontrak di Bulan ${currentMonthName}` : 'Dashboard Keuangan Siap Digunakan'}
+            </h3>
             <p className="text-xs text-[#6E6E73] mt-1 max-w-md mx-auto">
-              Mulai dengan mencatat kontrak perjalanan pertama Anda untuk menghasilkan laporan laba rugi dan analisis performa armada secara langsung.
+              {period === 'THIS_MONTH'
+                ? `Belum ada pencatatan kontrak perjalanan pada bulan ${currentMonthName} ${currentYear}. Anda dapat membuat kontrak baru atau melihat ringkasan bulan lalu (${prevMonthName}).`
+                : 'Mulai dengan mencatat kontrak perjalanan pertama Anda untuk menghasilkan laporan laba rugi dan analisis performa armada secara langsung.'}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -273,6 +289,15 @@ export function ExecutiveDashboardClient({ initialData, initialPeriod, userRole 
             >
               <Plus className="w-4 h-4" /> Buat Kontrak Baru
             </Link>
+            {period === 'THIS_MONTH' && (
+              <button
+                type="button"
+                onClick={() => handlePeriodChange('LAST_MONTH')}
+                className="px-5 py-2.5 bg-[#F2F2F7] hover:bg-[#E5E5EA] text-[#1D1D1F] rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-2"
+              >
+                Lihat Data Bulan Lalu ({prevMonthName})
+              </button>
+            )}
           </div>
         </div>
       ) : (
@@ -907,7 +932,7 @@ export function ExecutiveDashboardClient({ initialData, initialPeriod, userRole 
           <div className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold tracking-tight text-[#1D1D1F]">RIWAYAT KINERJA BULANAN TAHUN 2026</h3>
+                <h3 className="text-lg font-semibold tracking-tight text-[#1D1D1F]">RIWAYAT KINERJA BULANAN TAHUN {currentYear}</h3>
                 <p className="text-xs text-[#6E6E73]">Performa laba rugi dan ringkasan keuangan per bulan.</p>
               </div>
               <button
