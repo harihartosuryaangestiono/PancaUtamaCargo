@@ -740,6 +740,7 @@ model TripLeg {
   destination       String
   cargoType         String
   cargoWeightTon    Float          @default(0)
+  cargoWeightUnit   String         @default("TON")
   startKm           Float          @default(0)
   endKm             Float          @default(0)
   distanceKm        Float          @default(0)

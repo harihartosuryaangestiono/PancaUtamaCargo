@@ -295,6 +295,7 @@ export async function getDriverByIdAction(id: string) {
     destination: string
     cargoType: string
     cargoWeightTon: number
+    cargoWeightUnit: string
     distanceKm: number
     contractValue: number
     driverShare: number
@@ -322,6 +323,7 @@ export async function getDriverByIdAction(id: string) {
         destination: leg.destination,
         cargoType: leg.cargoType,
         cargoWeightTon: leg.cargoWeightTon,
+        cargoWeightUnit: leg.cargoWeightUnit,
         distanceKm: leg.distanceKm,
         contractValue: legRev,
         driverShare: legDriverShare,

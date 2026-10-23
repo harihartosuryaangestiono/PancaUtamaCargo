@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, X, Check, AlertCircle } from 'lucide-react'
 import { createTripContractAction } from '@/app/actions/contractActions'
 import { formatCurrency } from '@/lib/utils/format'
+import { CARGO_WEIGHT_UNITS, isCargoWeightUnit, type CargoWeightUnit } from '@/lib/utils/cargo'
 
 interface CreateContractModalProps {
   customers: Array<{ id: string; name: string }>
@@ -34,6 +35,7 @@ export function CreateContractModal({ customers, trucks, drivers = [] }: CreateC
   const [outDest, setOutDest] = useState('Surabaya')
   const [outCargo, setOutCargo] = useState('Plywood')
   const [outWeight, setOutWeight] = useState('35')
+  const [outWeightUnit, setOutWeightUnit] = useState<CargoWeightUnit>('TON')
   const [outDistance, setOutDistance] = useState('380')
   const [outValue, setOutValue] = useState('5500000')
   const [outToll, setOutToll] = useState('600000')
@@ -46,6 +48,7 @@ export function CreateContractModal({ customers, trucks, drivers = [] }: CreateC
   const [retDest, setRetDest] = useState('Magelang')
   const [retCargo, setRetCargo] = useState('Besi Siku')
   const [retWeight, setRetWeight] = useState('40')
+  const [retWeightUnit, setRetWeightUnit] = useState<CargoWeightUnit>('TON')
   const [retDistance, setRetDistance] = useState('380')
   const [retValue, setRetValue] = useState('6000000')
   const [retToll, setRetToll] = useState('600000')
@@ -89,6 +92,7 @@ export function CreateContractModal({ customers, trucks, drivers = [] }: CreateC
           destination: outDest,
           cargoType: outCargo,
           cargoWeightTon: Number(outWeight) || 0,
+          cargoWeightUnit: outWeightUnit,
           distanceKm: Number(outDistance) || 0,
           contractValue: Number(outValue) || 0,
           tollCost: Number(outToll) || 0,
@@ -101,6 +105,7 @@ export function CreateContractModal({ customers, trucks, drivers = [] }: CreateC
           destination: retDest,
           cargoType: retCargo,
           cargoWeightTon: Number(retWeight) || 0,
+          cargoWeightUnit: retWeightUnit,
           distanceKm: Number(retDistance) || 0,
           contractValue: Number(retValue) || 0,
           tollCost: Number(retToll) || 0,
@@ -293,8 +298,13 @@ export function CreateContractModal({ customers, trucks, drivers = [] }: CreateC
                   <input type="text" value={outCargo} onChange={(e) => setOutCargo(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] font-medium" />
                 </div>
                 <div>
-                  <label className="block font-semibold text-[#1D1D1F] mb-1">Berat Muatan (Ton)</label>
-                  <input type="number" value={outWeight} onChange={(e) => setOutWeight(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] font-medium" />
+                  <label className="block font-semibold text-[#1D1D1F] mb-1">Jumlah Muatan</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="number" min="0" value={outWeight} onChange={(e) => setOutWeight(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] font-medium" />
+                    <select value={outWeightUnit} onChange={(e) => { if (isCargoWeightUnit(e.target.value)) setOutWeightUnit(e.target.value) }} className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] font-medium">
+                      {CARGO_WEIGHT_UNITS.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label className="block font-semibold text-[#1D1D1F] mb-1">Nilai Kontrak ERP 1 (Rp)</label>
@@ -350,8 +360,13 @@ export function CreateContractModal({ customers, trucks, drivers = [] }: CreateC
                   <input type="text" value={retCargo} onChange={(e) => setRetCargo(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] font-medium" />
                 </div>
                 <div>
-                  <label className="block font-semibold text-[#1D1D1F] mb-1">Berat Muatan (Ton)</label>
-                  <input type="number" value={retWeight} onChange={(e) => setRetWeight(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] font-medium" />
+                  <label className="block font-semibold text-[#1D1D1F] mb-1">Jumlah Muatan</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="number" min="0" value={retWeight} onChange={(e) => setRetWeight(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] font-medium" />
+                    <select value={retWeightUnit} onChange={(e) => { if (isCargoWeightUnit(e.target.value)) setRetWeightUnit(e.target.value) }} className="w-full px-3 py-2 rounded-xl bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] font-medium">
+                      {CARGO_WEIGHT_UNITS.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label className="block font-semibold text-[#1D1D1F] mb-1">Nilai Kontrak ERP 2 (Rp)</label>

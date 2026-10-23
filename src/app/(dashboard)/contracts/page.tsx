@@ -6,6 +6,7 @@ import { getDriversAction } from '@/app/actions/driverActions'
 import { CreateContractModal } from './CreateContractModal'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { formatCurrency, formatKm } from '@/lib/utils/format'
+import { formatCargoWeight } from '@/lib/utils/cargo'
 import { FileText, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { EditContractCostsModal } from './EditContractCostsModal'
@@ -173,7 +174,7 @@ export default async function ContractsPage() {
                       <span>{outLeg?.destination}</span>
                     </div>
                     <p className="text-[#6E6E73] text-[11px]">
-                      Muatan: {outLeg?.cargoType} ({outLeg?.cargoWeightTon} Ton) · Jarak: {formatKm(outLeg?.distanceKm || 0)}
+                      Muatan: {outLeg?.cargoType} ({formatCargoWeight(outLeg?.cargoWeightTon, outLeg?.cargoWeightUnit)}) · Jarak: {formatKm(outLeg?.distanceKm || 0)}
                     </p>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[#6E6E73] pt-2 border-t border-black/[0.06]">
                       <span>Tol: <strong className="text-[#1D1D1F] font-semibold">{formatCurrency(outLeg?.tollCost ? Number(outLeg.tollCost) : 0)}</strong></span>
@@ -196,7 +197,7 @@ export default async function ContractsPage() {
                       <span>{retLeg?.destination}</span>
                     </div>
                     <p className="text-[#6E6E73] text-[11px]">
-                      Muatan: {retLeg?.cargoType} ({retLeg?.cargoWeightTon} Ton) · Jarak: {formatKm(retLeg?.distanceKm || 0)}
+                      Muatan: {retLeg?.cargoType} ({formatCargoWeight(retLeg?.cargoWeightTon, retLeg?.cargoWeightUnit)}) · Jarak: {formatKm(retLeg?.distanceKm || 0)}
                     </p>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[#6E6E73] pt-2 border-t border-black/[0.06]">
                       <span>Tol: <strong className="text-[#1D1D1F] font-semibold">{formatCurrency(retLeg?.tollCost ? Number(retLeg.tollCost) : 0)}</strong></span>

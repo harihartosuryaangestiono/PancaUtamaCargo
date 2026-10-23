@@ -5,6 +5,7 @@ import { getTrucksAction } from '@/app/actions/truckActions'
 import { getDriversAction } from '@/app/actions/driverActions'
 import { ContractDetailClient } from './ContractDetailClient'
 import { formatCurrency, formatKm, formatDate } from '@/lib/utils/format'
+import { formatCargoWeight } from '@/lib/utils/cargo'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
@@ -140,7 +141,7 @@ export default async function ContractDetailPage({ params }: ContractDetailPageP
 
             <div className="grid grid-cols-2 gap-2 text-xs text-[#6E6E73]">
               <div>Muatan: <span className="font-semibold text-[#1D1D1F]">{outLeg?.cargoType}</span></div>
-              <div>Berat: <span className="font-semibold text-[#1D1D1F]">{outLeg?.cargoWeightTon} Ton</span></div>
+              <div>Jumlah Muatan: <span className="font-semibold text-[#1D1D1F]">{formatCargoWeight(outLeg?.cargoWeightTon, outLeg?.cargoWeightUnit)}</span></div>
               <div>Jarak: <span className="font-semibold text-[#1D1D1F]">{formatKm(outLeg?.distanceKm || 0)}</span></div>
               <div>Tol: <span className="font-semibold text-[#1D1D1F]">{formatCurrency(outLeg?.tollCost ? Number(outLeg.tollCost) : null)}</span></div>
             </div>
@@ -176,7 +177,7 @@ export default async function ContractDetailPage({ params }: ContractDetailPageP
 
             <div className="grid grid-cols-2 gap-2 text-xs text-[#6E6E73]">
               <div>Muatan: <span className="font-semibold text-[#1D1D1F]">{retLeg?.cargoType}</span></div>
-              <div>Berat: <span className="font-semibold text-[#1D1D1F]">{retLeg?.cargoWeightTon} Ton</span></div>
+              <div>Jumlah Muatan: <span className="font-semibold text-[#1D1D1F]">{formatCargoWeight(retLeg?.cargoWeightTon, retLeg?.cargoWeightUnit)}</span></div>
               <div>Jarak: <span className="font-semibold text-[#1D1D1F]">{formatKm(retLeg?.distanceKm || 0)}</span></div>
               <div>Tol: <span className="font-semibold text-[#1D1D1F]">{formatCurrency(retLeg?.tollCost ? Number(retLeg.tollCost) : null)}</span></div>
             </div>

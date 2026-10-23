@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Printer } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils/format'
+import { formatCargoWeight } from '@/lib/utils/cargo'
 
 interface PrintableInvoiceClientProps {
   contract: any
@@ -209,7 +210,7 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
                     </p>
                   </td>
                   <td className="py-3.5 px-4 text-center font-mono border-r border-slate-200">
-                    {leg.cargoWeightTon ? `${leg.cargoWeightTon} Ton` : '-'}
+                    {leg.cargoWeightTon ? formatCargoWeight(leg.cargoWeightTon, leg.cargoWeightUnit) : '-'}
                   </td>
                   <td className="py-3.5 px-4 text-right font-mono border-r border-slate-200">
                     {formatCurrency(Number(leg.contractValue || 0))}

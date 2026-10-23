@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireOwner, requireAuth, requireFinanceOrOwner } from '@/lib/session'
 import { createAuditLog } from '@/lib/services/auditService'
 import { syncShipmentTires } from '@/lib/services/tireService'
+import { isCargoWeightUnit, type CargoWeightUnit } from '@/lib/utils/cargo'
 import { revalidatePath } from 'next/cache'
 
 export interface CreateLegInput {
@@ -11,6 +12,7 @@ export interface CreateLegInput {
   destination: string
   cargoType: string
   cargoWeightTon: number
+  cargoWeightUnit?: CargoWeightUnit
   distanceKm: number
   contractValue: number
   tollCost?: number
@@ -48,6 +50,13 @@ export async function createTripContractAction(input: CreateContractInput) {
 
   if (!input.returnLeg.origin || !input.returnLeg.destination) {
     return { error: 'Rute asal dan tujuan ERP 2 Pulang wajib diisi.' }
+  }
+
+  if (
+    (input.outboundLeg.cargoWeightUnit && !isCargoWeightUnit(input.outboundLeg.cargoWeightUnit)) ||
+    (input.returnLeg.cargoWeightUnit && !isCargoWeightUnit(input.returnLeg.cargoWeightUnit))
+  ) {
+    return { error: 'Satuan muatan tidak valid.' }
   }
 
   // Generate unique Contract Number
@@ -93,6 +102,7 @@ export async function createTripContractAction(input: CreateContractInput) {
         destination: input.outboundLeg.destination,
         cargoType: input.outboundLeg.cargoType || 'General Freight',
         cargoWeightTon: input.outboundLeg.cargoWeightTon || 0,
+        cargoWeightUnit: input.outboundLeg.cargoWeightUnit || 'TON',
         distanceKm: input.outboundLeg.distanceKm || 0,
         contractValue: outValue,
         driverPercentage: 53.0,
@@ -122,6 +132,7 @@ export async function createTripContractAction(input: CreateContractInput) {
         destination: input.returnLeg.destination,
         cargoType: input.returnLeg.cargoType || 'General Freight',
         cargoWeightTon: input.returnLeg.cargoWeightTon || 0,
+        cargoWeightUnit: input.returnLeg.cargoWeightUnit || 'TON',
         distanceKm: input.returnLeg.distanceKm || 0,
         contractValue: retValue,
         driverPercentage: 53.0,
@@ -460,6 +471,7 @@ export interface UpdateLegInput {
   destination: string
   cargoType: string
   cargoWeightTon: number
+  cargoWeightUnit?: CargoWeightUnit
   distanceKm: number
   contractValue: number
   tollCost?: number
@@ -497,6 +509,13 @@ export async function updateTripContractAction(input: UpdateTripContractInput) {
 
   if (!input.returnLeg.origin || !input.returnLeg.destination) {
     return { error: 'Rute asal dan tujuan ERP 2 Pulang wajib diisi.' }
+  }
+
+  if (
+    (input.outboundLeg.cargoWeightUnit && !isCargoWeightUnit(input.outboundLeg.cargoWeightUnit)) ||
+    (input.returnLeg.cargoWeightUnit && !isCargoWeightUnit(input.returnLeg.cargoWeightUnit))
+  ) {
+    return { error: 'Satuan muatan tidak valid.' }
   }
 
   const existing = await prisma.tripContract.findUnique({
@@ -540,6 +559,7 @@ export async function updateTripContractAction(input: UpdateTripContractInput) {
         destination: input.outboundLeg.destination,
         cargoType: input.outboundLeg.cargoType || 'General Freight',
         cargoWeightTon: Number(input.outboundLeg.cargoWeightTon) || 0,
+        cargoWeightUnit: input.outboundLeg.cargoWeightUnit || 'TON',
         distanceKm: Number(input.outboundLeg.distanceKm) || 0,
         contractValue: outValue,
         tollCost: outToll,
@@ -561,6 +581,7 @@ export async function updateTripContractAction(input: UpdateTripContractInput) {
         destination: input.returnLeg.destination,
         cargoType: input.returnLeg.cargoType || 'General Freight',
         cargoWeightTon: Number(input.returnLeg.cargoWeightTon) || 0,
+        cargoWeightUnit: input.returnLeg.cargoWeightUnit || 'TON',
         distanceKm: Number(input.returnLeg.distanceKm) || 0,
         contractValue: retValue,
         tollCost: retToll,
@@ -815,6 +836,5 @@ export async function deleteContractPaymentTransactionAction(transactionId: stri
 
   return { success: true }
 }
-
 
 

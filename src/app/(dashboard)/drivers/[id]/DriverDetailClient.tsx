@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatCurrency, formatKm } from '@/lib/utils/format'
+import { formatCargoWeight } from '@/lib/utils/cargo'
 import { withdrawDriverSavingsAction, depositDriverSavingsAction } from '@/app/actions/driverActions'
 import {
   User,
@@ -75,6 +76,7 @@ interface DriverDetailProps {
       destination: string
       cargoType: string
       cargoWeightTon: number
+      cargoWeightUnit: string
       distanceKm: number
       contractValue: number
       driverShare: number
@@ -555,7 +557,7 @@ export function DriverDetailClient({ driver }: DriverDetailProps) {
                   <tr className="bg-[#FAFAFA] border-b border-black/[0.06] text-[#6E6E73] font-semibold uppercase">
                     <th className="py-3 px-4">No. Kontrak &amp; Leg</th>
                     <th className="py-3 px-4">Rute (Origin → Destination)</th>
-                    <th className="py-3 px-4">Muatan &amp; Berat</th>
+                    <th className="py-3 px-4">Jenis &amp; Jumlah Muatan</th>
                     <th className="py-3 px-4 text-right">Jarak (KM)</th>
                     <th className="py-3 px-4 text-right">Nilai Kontrak</th>
                     <th className="py-3 px-4 text-right">Driver Share (53%)</th>
@@ -571,7 +573,7 @@ export function DriverDetailClient({ driver }: DriverDetailProps) {
                         {leg.origin} → {leg.destination}
                       </td>
                       <td className="py-3 px-4">
-                        <span>{leg.cargoType}</span> ({leg.cargoWeightTon} Ton)
+                        <span>{leg.cargoType}</span> ({formatCargoWeight(leg.cargoWeightTon, leg.cargoWeightUnit)})
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-semibold">
                         {formatKm(leg.distanceKm)}

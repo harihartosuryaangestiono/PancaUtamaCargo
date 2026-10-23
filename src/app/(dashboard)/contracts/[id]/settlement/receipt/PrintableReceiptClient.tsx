@@ -3,6 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { formatCurrency, formatKm } from '@/lib/utils/format'
+import { formatCargoWeight } from '@/lib/utils/cargo'
 import { Printer, ArrowLeft, Download, CheckCircle2 } from 'lucide-react'
 
 interface PrintableReceiptClientProps {
@@ -96,7 +97,7 @@ export function PrintableReceiptClient({ contract }: PrintableReceiptClientProps
               <tr className="bg-slate-100 border-b border-slate-300 text-slate-700 font-bold uppercase">
                 <th className="p-2.5 border-r border-slate-300">ERP Leg</th>
                 <th className="p-2.5 border-r border-slate-300">Rute (Origin → Destination)</th>
-                <th className="p-2.5 border-r border-slate-300">Muatan &amp; Berat</th>
+                <th className="p-2.5 border-r border-slate-300">Jenis &amp; Jumlah Muatan</th>
                 <th className="p-2.5 border-r border-slate-300 text-right">Nilai Kontrak</th>
                 <th className="p-2.5 text-right">Driver Share (53%)</th>
               </tr>
@@ -106,7 +107,7 @@ export function PrintableReceiptClient({ contract }: PrintableReceiptClientProps
                 <tr>
                   <td className="p-2.5 font-bold border-r border-slate-300">ERP 1 (Berangkat)</td>
                   <td className="p-2.5 border-r border-slate-300">{erp1.origin} → {erp1.destination}</td>
-                  <td className="p-2.5 border-r border-slate-300">{erp1.cargoType} ({erp1.cargoWeightTon} Ton)</td>
+                  <td className="p-2.5 border-r border-slate-300">{erp1.cargoType} ({formatCargoWeight(erp1.cargoWeightTon, erp1.cargoWeightUnit)})</td>
                   <td className="p-2.5 text-right font-medium border-r border-slate-300">{formatCurrency(Number(erp1.contractValue))}</td>
                   <td className="p-2.5 text-right font-bold text-slate-900">{formatCurrency(driverShareErp1)}</td>
                 </tr>
@@ -115,7 +116,7 @@ export function PrintableReceiptClient({ contract }: PrintableReceiptClientProps
                 <tr>
                   <td className="p-2.5 font-bold border-r border-slate-300">ERP 2 (Pulang)</td>
                   <td className="p-2.5 border-r border-slate-300">{erp2.origin} → {erp2.destination}</td>
-                  <td className="p-2.5 border-r border-slate-300">{erp2.cargoType} ({erp2.cargoWeightTon} Ton)</td>
+                  <td className="p-2.5 border-r border-slate-300">{erp2.cargoType} ({formatCargoWeight(erp2.cargoWeightTon, erp2.cargoWeightUnit)})</td>
                   <td className="p-2.5 text-right font-medium border-r border-slate-300">{formatCurrency(Number(erp2.contractValue))}</td>
                   <td className="p-2.5 text-right font-bold text-slate-900">{formatCurrency(driverShareErp2)}</td>
                 </tr>

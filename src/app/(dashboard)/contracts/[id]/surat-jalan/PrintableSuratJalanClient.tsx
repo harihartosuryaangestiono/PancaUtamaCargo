@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Printer } from 'lucide-react'
+import { formatCargoWeight } from '@/lib/utils/cargo'
 
 interface PrintableSuratJalanClientProps {
   contract: any
@@ -175,7 +176,7 @@ export function PrintableSuratJalanClient({ contract }: PrintableSuratJalanClien
                 <th className="py-3 px-4 border-r border-slate-300">Arah (Direction)</th>
                 <th className="py-3 px-4 border-r border-slate-300">Kota Asal &rarr; Tujuan</th>
                 <th className="py-3 px-4 border-r border-slate-300">Jenis Barang / Muatan</th>
-                <th className="py-3 px-4 text-center">Berat / Volume (Ton)</th>
+                <th className="py-3 px-4 text-center">Jumlah Muatan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 font-medium">
@@ -192,7 +193,7 @@ export function PrintableSuratJalanClient({ contract }: PrintableSuratJalanClien
                     {leg.cargoType || 'General Cargo'} {leg.customer?.name ? `(${leg.customer.name})` : ''}
                   </td>
                   <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-900">
-                    {leg.cargoWeightTon ? `${leg.cargoWeightTon} Ton` : '-'}
+                    {leg.cargoWeightTon ? formatCargoWeight(leg.cargoWeightTon, leg.cargoWeightUnit) : '-'}
                   </td>
                 </tr>
               ))}
