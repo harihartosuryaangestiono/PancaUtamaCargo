@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowLeft, Eye, EyeOff, Printer } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils/format'
 import { formatCargoWeight } from '@/lib/utils/cargo'
@@ -13,6 +14,7 @@ interface PrintableInvoiceClientProps {
 export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps) {
   const [legMode, setLegMode] = useState<'all' | '1' | '2'>('all')
   const [showWatermark, setShowWatermark] = useState(true)
+  const [showSignature, setShowSignature] = useState(true)
   const [dueDateValue, setDueDateValue] = useState(() => {
     const date = new Date(contract.startDate)
     date.setDate(date.getDate() + 14)
@@ -120,6 +122,15 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
           >
             {showWatermark ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             {showWatermark ? 'Sembunyikan watermark' : 'Tampilkan watermark'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSignature((visible) => !visible)}
+            aria-pressed={showSignature}
+            className="px-4 py-2 text-xs font-semibold text-[#1D1D1F] bg-white border border-black/[0.1] hover:bg-[#F5F5F7] rounded-xl transition-colors flex items-center gap-2"
+          >
+            {showSignature ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {showSignature ? 'Sembunyikan tanda tangan' : 'Tampilkan tanda tangan'}
           </button>
           <button
             onClick={() => window.print()}
@@ -301,9 +312,17 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
           <div>
             <p className="text-slate-500 mb-2">Hormat Kami,</p>
             <p className="font-extrabold text-slate-900 uppercase">PT Karunia Panca Gemilang</p>
-            <div className="h-10"></div>
+            {showSignature && (
+              <Image
+                src="/signature-hariharto.png"
+                alt="Tanda tangan Hariharto Surya Angestiono"
+                width={800}
+                height={410}
+                className="mx-auto h-20 w-40 object-contain"
+              />
+            )}
             <p className="font-bold text-slate-900 border-b border-slate-400 pb-1 inline-block min-w-[180px]">
-              ( Departemen Keuangan / Finance )
+              Hariharto Surya Angestiono
             </p>
           </div>
         </div>
