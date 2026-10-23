@@ -101,41 +101,45 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
       {/* Invoice Document Box */}
       <div className="invoice-print-document bg-white text-slate-900 border border-slate-300 rounded-2xl p-8 sm:p-10 shadow-xs print:border-none print:rounded-none print:shadow-none print:p-0">
         {/* Header Company Info */}
-        <div className="flex flex-row justify-between items-start border-b-2 border-slate-900 pb-6 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
+        <div className="invoice-print-header flex flex-row justify-between items-start border-b-2 border-slate-900 pb-6 mb-6">
+          <div className="invoice-print-company flex items-center gap-4">
+            <div className="invoice-print-logo w-16 h-16 rounded-full overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
               <img
                 src="/LogoPancaUtamaCargoCircular.png"
                 alt="Logo Panca Utama Cargo"
                 className="w-full h-full object-contain p-0.5"
               />
             </div>
-            <div>
+            <div className="invoice-print-company-details">
               <h1 className="text-xl font-extrabold tracking-tight text-slate-900 uppercase">
                 PT Karunia Panca Gemilang
               </h1>
               <p className="text-xs font-semibold text-emerald-600 tracking-wider">
                 Enterprise Fleet Operations &amp; Logistics Service
               </p>
-              <p className="text-[11px] text-slate-500 mt-1 leading-relaxed max-w-md">
-                Jl. Raya Krangan - Pringsurat, Kenteng, Kebumen, Kec. Pringsurat, Kabupaten Temanggung, Jawa Tengah 56272 · Telp: 085195500577 · Email: kpancagemilang@gmail.com
+              <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                Jl. Raya Krangan - Pringsurat, Kenteng, Kebumen, Kec. Pringsurat, Kabupaten Temanggung, Jawa Tengah 56272
+              </p>
+              <p className="invoice-print-contact text-[11px] text-slate-500 leading-relaxed">
+                Telp: 085195500577 <span aria-hidden="true">·</span> Email: kpancagemilang@gmail.com
               </p>
             </div>
           </div>
 
-          <div className="text-right">
-            <span className="inline-block px-3 py-1 bg-slate-900 text-white font-extrabold text-xs tracking-wider uppercase rounded-md mb-2">
-              {legMode === '1' ? 'INVOICE (LEG 1 - BERANGKAT)' : legMode === '2' ? 'INVOICE (LEG 2 - PULANG)' : 'INVOICE / TAGIHAN'}
-            </span>
-            <p className="text-xs font-mono font-bold text-slate-900">{invoiceNumber}</p>
-            <p className="text-[11px] text-slate-500 mt-0.5">Tanggal: {invoiceDate}</p>
+          <div className="invoice-print-meta text-right">
+            <h2 className="text-2xl font-black tracking-widest text-slate-900">INVOICE</h2>
+            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+              {legMode === '1' ? 'Leg 1 · Berangkat' : legMode === '2' ? 'Leg 2 · Pulang' : 'Tagihan'}
+            </p>
+            <p className="text-xs font-mono font-bold text-slate-900 mt-2">{invoiceNumber}</p>
+            <p className="text-[11px] text-slate-500 mt-1">Tanggal: {invoiceDate}</p>
             <p className="text-[11px] text-slate-500">Jatuh Tempo: {dueDate}</p>
           </div>
         </div>
 
         {/* Bill To & Expedition Detail */}
-        <div className="grid grid-cols-2 gap-6 mb-8 text-xs">
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+        <div className="invoice-print-parties grid grid-cols-2 gap-6 mb-8 text-xs">
+          <div className="invoice-print-card p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">
               TAGIHAN KEPADA (BILL TO CLIENT):
             </span>
@@ -149,20 +153,19 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
             )}
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+          <div className="invoice-print-card p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">
               DETAIL ARMADA &amp; OPERASIONAL:
             </span>
             <p className="font-semibold text-slate-900">Armada: {contract.truck?.policeNumber} ({contract.truck?.truckCode})</p>
             <p className="text-slate-600">Pengemudi: {contract.driverName}</p>
             <p className="text-slate-600">No. Kontrak ERP: {contract.contractNumber}</p>
-            <p className="text-slate-600">Opsi Cetak: <span className="font-bold text-blue-700 uppercase">{legMode === 'all' ? 'Round-Trip Full' : `Leg ${legMode}`}</span></p>
           </div>
         </div>
 
         {/* Line Items Table */}
-        <div className="mb-8">
-          <table className="w-full text-xs text-left border-collapse border border-slate-300">
+        <div className="invoice-print-table-wrap mb-8">
+          <table className="invoice-print-table w-full text-xs text-left border-collapse border border-slate-300">
             <thead className="bg-slate-100 text-slate-800 uppercase font-bold text-[10px] tracking-wider border-b border-slate-300">
               <tr>
                 <th className="py-3 px-4 border-r border-slate-300 text-center">No</th>
@@ -213,8 +216,8 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
         </div>
 
         {/* Calculation Totals */}
-        <div className="flex flex-row justify-between items-start mb-8 text-xs">
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 max-w-xs space-y-1">
+        <div className="invoice-print-summary flex flex-row justify-between items-start mb-8 text-xs">
+          <div className="invoice-print-payment p-4 rounded-xl bg-slate-50 border border-slate-200 max-w-xs space-y-1">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block mb-1">
               PEMBAYARAN DILAKUKAN KE REKENING:
             </span>
@@ -223,7 +226,7 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
             <p className="text-slate-600 font-semibold">a.n. PT Karunia Panca Gemilang</p>
           </div>
 
-          <div className="w-72 space-y-2 text-xs">
+          <div className="invoice-print-totals w-72 space-y-2 text-xs">
             <div className="flex justify-between text-slate-600">
               <span>Subtotal Tagihan:</span>
               <span className="font-mono font-semibold text-slate-900">{formatCurrency(subtotal)}</span>
@@ -242,7 +245,7 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
         </div>
 
         {/* Signatures */}
-        <div className="grid grid-cols-2 gap-8 pt-8 border-t border-slate-200 text-center text-xs">
+        <div className="invoice-print-signatures grid grid-cols-2 gap-8 pt-8 border-t border-slate-200 text-center text-xs">
           <div>
             <p className="text-slate-500 mb-16">Penerima Tagihan (Client),</p>
             <p className="font-bold text-slate-900 border-b border-slate-400 pb-1 inline-block min-w-[180px]">

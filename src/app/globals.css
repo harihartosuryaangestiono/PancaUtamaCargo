@@ -15,8 +15,8 @@ html, body {
 }
 
 @media print {
-  @page invoice {
-    size: A4;
+  @page {
+    size: A4 portrait;
     margin: 12mm;
   }
 
@@ -26,8 +26,124 @@ html, body {
     color: #000 !important;
   }
 
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   .invoice-print-root {
-    page: invoice;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    color: #111827 !important;
+    font-size: 10pt;
+  }
+
+  .invoice-print-document {
+    width: 100% !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .invoice-print-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8mm;
+    padding-bottom: 5mm !important;
+    margin-bottom: 6mm !important;
+    border-bottom: 1.5pt solid #111827 !important;
+  }
+
+  .invoice-print-company {
+    display: grid !important;
+    grid-template-columns: 17mm minmax(0, 1fr);
+    align-items: center;
+    gap: 4mm !important;
+    min-width: 0;
+  }
+
+  .invoice-print-logo {
+    width: 17mm !important;
+    height: 17mm !important;
+    border-color: #d1d5db !important;
+    background: #fff !important;
+  }
+
+  .invoice-print-company-details {
+    min-width: 0;
+  }
+
+  .invoice-print-company-details h1 {
+    font-size: 16pt;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+
+  .invoice-print-contact {
+    margin-top: 1mm;
+  }
+
+  .invoice-print-meta {
+    min-width: 43mm;
+    padding-left: 3mm;
+  }
+
+  .invoice-print-meta h2 {
+    font-size: 20pt;
+    line-height: 1;
+  }
+
+  .invoice-print-parties {
+    gap: 5mm !important;
+    margin-bottom: 6mm !important;
+  }
+
+  .invoice-print-card {
+    padding: 4mm !important;
+    border: 0.5pt solid #d1d5db !important;
+    border-radius: 2mm !important;
+    background: #f8fafc !important;
+  }
+
+  .invoice-print-table-wrap {
+    margin-bottom: 6mm !important;
+  }
+
+  .invoice-print-table th,
+  .invoice-print-table td {
+    padding: 2.5mm 2.5mm !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .invoice-print-summary {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(65mm, 0.9fr);
+    align-items: start;
+    gap: 8mm;
+    margin-bottom: 7mm !important;
+  }
+
+  .invoice-print-payment {
+    max-width: none !important;
+    padding: 4mm !important;
+    border: 0.5pt solid #d1d5db !important;
+    border-radius: 2mm !important;
+    background: #f8fafc !important;
+  }
+
+  .invoice-print-totals {
+    width: 100% !important;
+  }
+
+  .invoice-print-signatures {
+    gap: 8mm !important;
+    padding-top: 6mm !important;
+    border-color: #cbd5e1 !important;
   }
 
   .invoice-print-document tr {
