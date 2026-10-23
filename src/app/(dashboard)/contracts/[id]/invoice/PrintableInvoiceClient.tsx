@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Printer } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, Printer } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils/format'
 import { formatCargoWeight } from '@/lib/utils/cargo'
 
@@ -12,6 +12,7 @@ interface PrintableInvoiceClientProps {
 
 export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps) {
   const [legMode, setLegMode] = useState<'all' | '1' | '2'>('all')
+  const [showWatermark, setShowWatermark] = useState(true)
   const [dueDateValue, setDueDateValue] = useState(() => {
     const date = new Date(contract.startDate)
     date.setDate(date.getDate() + 14)
@@ -112,6 +113,15 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
             />
           </label>
           <button
+            type="button"
+            onClick={() => setShowWatermark((visible) => !visible)}
+            aria-pressed={showWatermark}
+            className="px-4 py-2 text-xs font-semibold text-[#1D1D1F] bg-white border border-black/[0.1] hover:bg-[#F5F5F7] rounded-xl transition-colors flex items-center gap-2"
+          >
+            {showWatermark ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {showWatermark ? 'Sembunyikan watermark' : 'Tampilkan watermark'}
+          </button>
+          <button
             onClick={() => window.print()}
             className="px-4 py-2 text-xs font-semibold text-white bg-[#007AFF] hover:bg-[#0062CC] rounded-xl shadow-2xs transition-colors flex items-center gap-2"
           >
@@ -121,7 +131,17 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
       </div>
 
       {/* Invoice Document Box */}
-      <div className="invoice-print-document bg-white text-slate-900 border border-slate-300 rounded-2xl p-8 sm:p-10 shadow-xs print:border-none print:rounded-none print:shadow-none print:p-0">
+      <div className="invoice-print-document relative isolate bg-white text-slate-900 border border-slate-300 rounded-2xl p-8 sm:p-10 shadow-xs print:border-none print:rounded-none print:shadow-none print:p-0">
+        {showWatermark && (
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center overflow-hidden">
+            <img
+              src="/LogoPancaUtamaCargoCircular.png"
+              alt=""
+              className="w-[55%] max-w-[420px] object-contain opacity-[0.07]"
+            />
+          </div>
+        )}
+        <div className="invoice-print-content relative z-10">
         {/* Header Company Info */}
         <div className="invoice-print-header flex flex-row justify-between items-start border-b-2 border-slate-900 pb-6 mb-6">
           <div className="invoice-print-company flex items-center gap-4">
@@ -286,6 +306,7 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
               ( Departemen Keuangan / Finance )
             </p>
           </div>
+        </div>
         </div>
       </div>
     </div>
