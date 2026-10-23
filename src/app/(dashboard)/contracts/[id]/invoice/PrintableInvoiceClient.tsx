@@ -145,6 +145,9 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
               <p className="invoice-print-contact text-[11px] text-slate-500 leading-relaxed">
                 Telp: 085195500577 <span aria-hidden="true">·</span> Email: kpancagemilang@gmail.com
               </p>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                NPWP: 1000 0000 1150 9529
+              </p>
             </div>
           </div>
 
@@ -192,7 +195,7 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
               <tr>
                 <th className="py-3 px-4 border-r border-slate-300 text-center">No</th>
                 <th className="py-3 px-4 border-r border-slate-300">Deskripsi Layanan / Rute Cargo</th>
-                <th className="py-3 px-4 text-center border-r border-slate-300">Muatan (Ton)</th>
+                <th className="py-3 px-4 text-center border-r border-slate-300">Muatan</th>
                 <th className="py-3 px-4 text-right border-r border-slate-300">Tarif / Nilai Leg</th>
                 <th className="py-3 px-4 text-right">Subtotal</th>
               </tr>
