@@ -49,7 +49,7 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
   const netTotal = subtotal - taxDeduction
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 text-[#1D1D1F]">
+    <div className="invoice-print-root max-w-4xl mx-auto space-y-6 text-[#1D1D1F] print:max-w-none print:w-full print:mx-0 print:space-y-0">
       {/* Top Action Bar & Leg Filter Selector (Hidden on print) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
         <Link
@@ -99,7 +99,7 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
       </div>
 
       {/* Invoice Document Box */}
-      <div className="bg-white text-slate-900 border border-slate-300 rounded-2xl p-8 sm:p-10 shadow-xs print:border-none print:shadow-none print:p-0">
+      <div className="invoice-print-document bg-white text-slate-900 border border-slate-300 rounded-2xl p-8 sm:p-10 shadow-xs print:border-none print:rounded-none print:shadow-none print:p-0">
         {/* Header Company Info */}
         <div className="flex flex-row justify-between items-start border-b-2 border-slate-900 pb-6 mb-6">
           <div className="flex items-center gap-4">
@@ -112,13 +112,13 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
             </div>
             <div>
               <h1 className="text-xl font-extrabold tracking-tight text-slate-900 uppercase">
-                PT PANCA UTAMA CARGO
+                PT Karunia Panca Gemilang
               </h1>
               <p className="text-xs font-semibold text-emerald-600 tracking-wider">
                 Enterprise Fleet Operations &amp; Logistics Service
               </p>
               <p className="text-[11px] text-slate-500 mt-1 leading-relaxed max-w-md">
-                Jl. Raya Transportasi Tronton No. 88, Kertajaya, Surabaya · Telp: (031) 889-7766 / 0812-3456-7890 · Email: billing@pancautamacargo.com
+                Jl. Raya Krangan - Pringsurat, Kenteng, Kebumen, Kec. Pringsurat, Kabupaten Temanggung, Jawa Tengah 56272 · Telp: 085195500577 · Email: kpancagemilang@gmail.com
               </p>
             </div>
           </div>
@@ -219,8 +219,8 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
               PEMBAYARAN DILAKUKAN KE REKENING:
             </span>
             <p className="font-bold text-slate-900">Bank Central Asia (BCA)</p>
-            <p className="font-mono text-sm font-bold text-[#007AFF]">3445565568</p>
-            <p className="text-slate-600 font-semibold">a.n. Hariharto Surya Anggestiono</p>
+            <p className="font-mono text-sm font-bold text-[#007AFF]">3442992999</p>
+            <p className="text-slate-600 font-semibold">a.n. PT Karunia Panca Gemilang</p>
           </div>
 
           <div className="w-72 space-y-2 text-xs">
@@ -252,7 +252,7 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
 
           <div>
             <p className="text-slate-500 mb-2">Hormat Kami,</p>
-            <p className="font-extrabold text-slate-900 uppercase">PT PANCA UTAMA CARGO</p>
+            <p className="font-extrabold text-slate-900 uppercase">PT Karunia Panca Gemilang</p>
             <div className="h-10"></div>
             <p className="font-bold text-slate-900 border-b border-slate-400 pb-1 inline-block min-w-[180px]">
               ( Departemen Keuangan / Finance )

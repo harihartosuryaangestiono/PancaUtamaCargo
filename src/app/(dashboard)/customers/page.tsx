@@ -4,6 +4,8 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Users as UsersIcon, Phone, Mail, MapPin, Package } from 'lucide-react'
 import Link from 'next/link'
 import { CreateCustomerModal } from './CreateCustomerModal'
+import { EditCustomerModal } from './EditCustomerModal'
+import { DeleteCustomerButton } from './[id]/DeleteCustomerButton'
 
 export default async function CustomersPage() {
   const session = await requireAuth()
@@ -137,12 +139,20 @@ export default async function CustomersPage() {
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
-                        <Link
-                          href={`/customers/${c.id}`}
-                          className="px-3 py-1 text-[11px] font-semibold text-[#007AFF] hover:text-[#0062CC] bg-[#007AFF]/10 border border-[#007AFF]/20 rounded-lg transition-colors"
-                        >
-                          Detail &rarr;
-                        </Link>
+                        <div className="flex justify-end items-center gap-2">
+                          {(session.role === 'OWNER' || session.role === 'FINANCE') && (
+                            <EditCustomerModal customer={c} />
+                          )}
+                          {session.role === 'OWNER' && (
+                            <DeleteCustomerButton customerId={c.id} customerName={c.name} compact />
+                          )}
+                          <Link
+                            href={`/customers/${c.id}`}
+                            className="px-3 py-1.5 text-[11px] font-semibold text-[#6E6E73] hover:text-[#1D1D1F] bg-[#F5F5F7] border border-black/[0.06] rounded-xl transition-colors"
+                          >
+                            Detail
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   )

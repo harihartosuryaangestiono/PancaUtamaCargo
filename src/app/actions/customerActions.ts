@@ -58,14 +58,27 @@ export async function updateCustomerAction(id: string, input: Partial<CustomerIn
     return { error: 'Data pelanggan tidak ditemukan.' }
   }
 
+  const code = input.code?.trim().toUpperCase()
+  if (code && code !== existing.code) {
+    const customerWithCode = await prisma.customer.findUnique({ where: { code } })
+    if (customerWithCode) {
+      return { error: `Kode Pelanggan "${code}" sudah terdaftar.` }
+    }
+  }
+
+  if (input.name !== undefined && !input.name.trim()) {
+    return { error: 'Nama Pelanggan wajib diisi.' }
+  }
+
   const updated = await prisma.customer.update({
     where: { id },
     data: {
-      name: input.name ? input.name.trim() : existing.name,
-      phone: input.phone !== undefined ? input.phone : existing.phone,
-      email: input.email !== undefined ? input.email : existing.email,
-      address: input.address !== undefined ? input.address : existing.address,
-      notes: input.notes !== undefined ? input.notes : existing.notes,
+      code: code || existing.code,
+      name: input.name !== undefined ? input.name.trim() : existing.name,
+      phone: input.phone !== undefined ? input.phone.trim() || null : existing.phone,
+      email: input.email !== undefined ? input.email.trim() || null : existing.email,
+      address: input.address !== undefined ? input.address.trim() || null : existing.address,
+      notes: input.notes !== undefined ? input.notes.trim() || null : existing.notes,
     },
   })
 
@@ -92,6 +105,8 @@ export async function deleteCustomerAction(id: string) {
         select: {
           shipments: true,
           incomes: true,
+          tripContracts: true,
+          tripLegs: true,
         },
       },
     },
@@ -101,9 +116,14 @@ export async function deleteCustomerAction(id: string) {
     return { error: 'Data pelanggan tidak ditemukan.' }
   }
 
-  if (customer._count.shipments > 0 || customer._count.incomes > 0) {
+  if (
+    customer._count.shipments > 0
+    || customer._count.incomes > 0
+    || customer._count.tripContracts > 0
+    || customer._count.tripLegs > 0
+  ) {
     return {
-      error: `Tidak dapat menghapus pelanggan "${customer.name}" karena memiliki ${customer._count.shipments} riwayat pengiriman dan ${customer._count.incomes} transaksi keuangan.`,
+      error: `Tidak dapat menghapus pelanggan "${customer.name}" karena memiliki riwayat pengiriman (${customer._count.shipments}), transaksi keuangan (${customer._count.incomes}), kontrak (${customer._count.tripContracts}), atau rute kontrak (${customer._count.tripLegs}).`,
     }
   }
 
@@ -224,4 +244,3 @@ export async function getCustomerIntelligenceAction(dateRange: string = 'ALL_TIM
     topByShipments: topByShipments.slice(0, 10),
   }
 }
-
