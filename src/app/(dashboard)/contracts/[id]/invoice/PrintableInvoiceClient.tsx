@@ -11,6 +11,14 @@ interface PrintableInvoiceClientProps {
 
 export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps) {
   const [legMode, setLegMode] = useState<'all' | '1' | '2'>('all')
+  const [dueDateValue, setDueDateValue] = useState(() => {
+    const date = new Date(contract.startDate)
+    date.setDate(date.getDate() + 14)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })
 
   const leg1 = contract.legs?.find((l: any) => l.legNumber === 1) || contract.legs?.[0]
   const leg2 = contract.legs?.find((l: any) => l.legNumber === 2) || contract.legs?.[1]
@@ -30,11 +38,13 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
     month: 'long',
     year: 'numeric',
   })
-  const dueDate = new Date(new Date(contract.startDate).getTime() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  const dueDate = dueDateValue
+    ? new Date(`${dueDateValue}T00:00:00`).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : '—'
 
   // Calculate totals for active legs
   let activeRevenue = 0
@@ -51,7 +61,7 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
   return (
     <div className="invoice-print-root max-w-4xl mx-auto space-y-6 text-[#1D1D1F] print:max-w-none print:w-full print:mx-0 print:space-y-0">
       {/* Top Action Bar & Leg Filter Selector (Hidden on print) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-4 print:hidden">
         <Link
           href={`/contracts/${contract.id}`}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6E6E73] hover:text-[#1D1D1F] transition-colors"
@@ -90,12 +100,23 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
           )}
         </div>
 
-        <button
-          onClick={() => window.print()}
-          className="px-4 py-2 text-xs font-semibold text-white bg-[#007AFF] hover:bg-[#0062CC] rounded-xl shadow-2xs transition-colors flex items-center gap-2"
-        >
-          <Printer className="w-4 h-4" /> Cetak / Simpan PDF Invoice
-        </button>
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1 text-[11px] font-semibold text-[#6E6E73]">
+            Jatuh Tempo
+            <input
+              type="date"
+              value={dueDateValue}
+              onChange={(event) => setDueDateValue(event.target.value)}
+              className="min-h-9 rounded-xl border border-black/[0.1] bg-white px-3 text-xs font-medium text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/20"
+            />
+          </label>
+          <button
+            onClick={() => window.print()}
+            className="px-4 py-2 text-xs font-semibold text-white bg-[#007AFF] hover:bg-[#0062CC] rounded-xl shadow-2xs transition-colors flex items-center gap-2"
+          >
+            <Printer className="w-4 h-4" /> Cetak / Simpan PDF Invoice
+          </button>
+        </div>
       </div>
 
       {/* Invoice Document Box */}

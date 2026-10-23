@@ -17,13 +17,17 @@ html, body {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 15mm;
   }
 
   html,
   body {
     background: #fff !important;
     color: #000 !important;
+  }
+
+  body {
+    margin: 0 !important;
   }
 
   *,
@@ -36,6 +40,7 @@ html, body {
   .invoice-print-root {
     width: 100% !important;
     max-width: none !important;
+    min-width: 0 !important;
     margin: 0 !important;
     color: #111827 !important;
     font-size: 10pt;
@@ -43,20 +48,25 @@ html, body {
 
   .invoice-print-document {
     width: 100% !important;
+    min-width: 0 !important;
     padding: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+    overflow: visible !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
   }
 
   .invoice-print-header {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) 43mm;
     align-items: start;
-    gap: 8mm;
+    gap: 5mm;
     padding-bottom: 5mm !important;
     margin-bottom: 6mm !important;
     border-bottom: 1.5pt solid #111827 !important;
+    min-width: 0;
   }
 
   .invoice-print-company {
@@ -76,6 +86,7 @@ html, body {
 
   .invoice-print-company-details {
     min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .invoice-print-company-details h1 {
@@ -89,13 +100,17 @@ html, body {
   }
 
   .invoice-print-meta {
-    min-width: 43mm;
-    padding-left: 3mm;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .invoice-print-meta h2 {
     font-size: 20pt;
     line-height: 1;
+  }
+
+  .invoice-print-meta p {
+    overflow-wrap: anywhere;
   }
 
   .invoice-print-parties {
@@ -112,19 +127,51 @@ html, body {
 
   .invoice-print-table-wrap {
     margin-bottom: 6mm !important;
+    min-width: 0;
+    overflow: visible !important;
+  }
+
+  .invoice-print-table {
+    width: 100% !important;
+    table-layout: fixed;
+    overflow-wrap: anywhere;
+  }
+
+  .invoice-print-table th:nth-child(1),
+  .invoice-print-table td:nth-child(1) {
+    width: 8%;
+  }
+
+  .invoice-print-table th:nth-child(2),
+  .invoice-print-table td:nth-child(2) {
+    width: 38%;
+  }
+
+  .invoice-print-table th:nth-child(3),
+  .invoice-print-table td:nth-child(3) {
+    width: 14%;
+  }
+
+  .invoice-print-table th:nth-child(4),
+  .invoice-print-table td:nth-child(4),
+  .invoice-print-table th:nth-child(5),
+  .invoice-print-table td:nth-child(5) {
+    width: 20%;
   }
 
   .invoice-print-table th,
   .invoice-print-table td {
-    padding: 2.5mm 2.5mm !important;
+    padding: 2mm 1.5mm !important;
     border-color: #cbd5e1 !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
   }
 
   .invoice-print-summary {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) minmax(65mm, 0.9fr);
     align-items: start;
-    gap: 8mm;
+    gap: 5mm;
     margin-bottom: 7mm !important;
   }
 
