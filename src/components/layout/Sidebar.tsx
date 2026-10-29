@@ -99,6 +99,12 @@ export function Sidebar({ userRole, userName, isOpenMobile = false, onCloseMobil
           roles: ['OWNER', 'FINANCE', 'VIEWER'],
         },
         {
+          label: 'Invoice Manual',
+          href: '/invoice-manual',
+          icon: FileText,
+          roles: ['OWNER', 'FINANCE', 'VIEWER'],
+        },
+        {
           label: 'Piutang Pelanggan',
           href: '/financials/piutang',
           icon: Receipt,
