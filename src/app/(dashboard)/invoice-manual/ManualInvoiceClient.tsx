@@ -33,6 +33,7 @@ export function ManualInvoiceClient() {
   const [deliveryNumber, setDeliveryNumber] = useState('')
   const [route, setRoute] = useState('')
   const [description, setDescription] = useState('')
+  const [cargo, setCargo] = useState('')
   const [amount, setAmount] = useState('')
   const [showWatermark, setShowWatermark] = useState(true)
   const [error, setError] = useState('')
@@ -173,6 +174,15 @@ export function ManualInvoiceClient() {
               />
             </label>
             <label className="space-y-1 text-xs font-semibold text-[#6E6E73] sm:col-span-2">
+              Muatan
+              <input
+                value={cargo}
+                onChange={(event) => setCargo(event.target.value)}
+                placeholder="Contoh: Beras 10 ton"
+                className="w-full rounded-xl border border-black/[0.1] bg-white px-3 py-2.5 text-sm font-medium text-[#1D1D1F] outline-none focus:border-[#007AFF]"
+              />
+            </label>
+            <label className="space-y-1 text-xs font-semibold text-[#6E6E73] sm:col-span-2">
               Nominal Tagihan (Rp) *
               <input
                 type="number"
@@ -274,7 +284,7 @@ export function ManualInvoiceClient() {
                 <tr>
                   <td className="py-3.5 px-4 text-center font-mono border-r border-slate-200">1</td>
                   <td className="py-3.5 px-4 border-r border-slate-200 font-bold text-slate-900">{description || '—'}</td>
-                  <td className="py-3.5 px-4 text-center font-mono border-r border-slate-200">-</td>
+                  <td className="py-3.5 px-4 text-center font-mono border-r border-slate-200">{cargo || '—'}</td>
                   <td className="py-3.5 px-4 text-right font-mono border-r border-slate-200">
                     {amount ? formatCurrency(numericAmount) : '—'}
                   </td>
