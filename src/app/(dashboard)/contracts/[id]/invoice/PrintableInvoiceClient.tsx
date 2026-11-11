@@ -15,6 +15,7 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
   const [legMode, setLegMode] = useState<'all' | '1' | '2'>('all')
   const [showWatermark, setShowWatermark] = useState(true)
   const [showSignature, setShowSignature] = useState(true)
+  const [includeTaxDeduction, setIncludeTaxDeduction] = useState(true)
   const [dueDateValue, setDueDateValue] = useState(() => {
     const date = new Date(contract.startDate)
     date.setDate(date.getDate() + 14)
@@ -60,7 +61,7 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
 
   const subtotal = activeRevenue + activeToll
   const taxDeduction = subtotal * 0.02
-  const netTotal = subtotal - taxDeduction
+  const netTotal = subtotal - (includeTaxDeduction ? taxDeduction : 0)
 
   return (
     <div className="invoice-print-root max-w-4xl mx-auto space-y-6 text-[#1D1D1F] print:max-w-none print:w-full print:mx-0 print:space-y-0">
@@ -113,6 +114,15 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
               onChange={(event) => setDueDateValue(event.target.value)}
               className="min-h-9 rounded-xl border border-black/[0.1] bg-white px-3 text-xs font-medium text-[#1D1D1F] outline-none focus:border-[#007AFF] focus:ring-2 focus:ring-[#007AFF]/20"
             />
+          </label>
+          <label className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-black/[0.1] bg-white px-3 text-xs font-semibold text-[#1D1D1F]">
+            <input
+              type="checkbox"
+              checked={includeTaxDeduction}
+              onChange={(event) => setIncludeTaxDeduction(event.target.checked)}
+              className="h-4 w-4 accent-[#007AFF]"
+            />
+            Tampilkan Potongan PPh 2%: -{formatCurrency(taxDeduction)}
           </label>
           <button
             type="button"
@@ -287,7 +297,7 @@ export function PrintableInvoiceClient({ contract }: PrintableInvoiceClientProps
               <span>Subtotal Tagihan:</span>
               <span className="font-mono font-semibold text-slate-900">{formatCurrency(subtotal)}</span>
             </div>
-            {taxDeduction > 0 && (
+            {includeTaxDeduction && taxDeduction > 0 && (
               <div className="flex justify-between text-slate-600">
                 <span>Potongan PPh 2%:</span>
                 <span className="font-mono font-semibold text-rose-600">-{formatCurrency(taxDeduction)}</span>
